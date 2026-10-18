@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Lịch sử mượn trả & Sửa chữa thiết bị - F-CAMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <script src="data.js"></script>
+  <script>
+    // Kiểm tra quyền: Chỉ IT_STAFF và ADMIN mới được xem lịch sử!
+    checkPermission(["IT_STAFF", "ADMIN"]);
+    renderHeader('history');
+  </script>
+
+  <h1>Nhật ký Lịch sử Mượn phòng, Mượn đồ & Sửa chữa thiết bị</h1>
+  <p><i>(Dành riêng cho Cán bộ IT và Quản trị viên theo dõi công tác quản lý tài sản)</i></p>
+
+  <!-- Phần 1: Lịch sử mượn phòng đã hoàn tất -->
+  <h2>1. Lịch sử Mượn & Nghiệm thu phòng học (Đã hoàn tất)</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 35px; text-align: center;">No.</th>
+        <th style="width: 80px;">Mã phiếu</th>
+        <th style="width: 90px;">Mã phòng</th>
+        <th style="width: 140px;">Ca học (Slot)</th>
+        <th style="width: 90px;">Ngày mượn</th>
+        <th style="width: 150px;">Người mượn</th>
+        <th>Thời điểm trả phòng</th>
+        <th style="width: 120px;">Cán bộ IT nghiệm thu</th>
+        <th style="width: 130px; text-align: center;">Kiểm tra điều hòa</th>
+        <th style="width: 120px; text-align: center;">Số ghế đếm thực tế</th>
+      </tr>
+    </thead>
+    <tbody id="roomHistoryBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <!-- Phần 2: Lịch sử mượn đồ / mượn ghế -->
+  <h2>2. Lịch sử Điều chuyển & Mượn đồ dùng, Bàn ghế giảng đường</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 35px; text-align: center;">No.</th>
+        <th style="width: 80px;">Mã phiếu</th>
+        <th style="width: 180px;">Thiết bị / Đồ dùng mượn</th>
+        <th style="width: 80px; text-align: center;">Số lượng</th>
+        <th style="width: 120px;">Lấy từ</th>
+        <th style="width: 120px;">Chuyển đến</th>
+        <th>Người mượn</th>
+        <th style="width: 100px;">Ngày mượn</th>
+        <th style="width: 100px;">Ngày trả</th>
+        <th style="width: 160px;">Tình trạng hoàn trả</th>
+      </tr>
+    </thead>
+    <tbody id="itemHistoryBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <!-- Phần 3: Lịch sử sửa chữa thiết bị -->
+  <h2>3. Lịch sử Sửa chữa & Bảo dưỡng thiết bị hỏng</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 35px; text-align: center;">No.</th>
+        <th style="width: 80px;">Mã bảo trì</th>
+        <th style="width: 90px;">Phòng học</th>
+        <th style="width: 140px;">Thiết bị</th>
+        <th>Hiện tượng hư hỏng</th>
+        <th style="width: 140px;">Kỹ thuật viên xử lý</th>
+        <th style="width: 90px;">Bắt đầu</th>
+        <th style="width: 90px;">Hoàn thành</th>
+        <th>Biện pháp khắc phục / Thay thế</th>
+        <th style="width: 140px; text-align: center;">Tình trạng sau sửa</th>
+      </tr>
+    </thead>
+    <tbody id="repairHistoryBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <script>
+    const state = getState();
+
+    // 1. Render lịch sử mượn phòng
+    function renderRoomHistory() {
+      const tbody = document.getElementById("roomHistoryBody");
+      tbody.innerHTML = "";
+
+      if (!state.historyRooms || state.historyRooms.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:15px;">Chưa có dữ liệu lịch sử mượn phòng.</td></tr>`;
+        return;
+      }
+
+      state.historyRooms.forEach((r, idx) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="text-align:center;">${idx + 1}</td>
+          <td><b>${r.id}</b></td>
+          <td><a href="room-detail.html?id=${r.roomId}"><b>${r.roomId}</b></a></td>
+          <td>${r.slot}</td>
+          <td>${r.date}</td>
+          <td>${r.borrower}</td>
+          <td>${r.returnTime}</td>
+          <td>${r.inspector}</td>
+          <td style="text-align:center;"><b>${r.acCheck}</b></td>
+          <td style="text-align:center;">${r.actualChairs}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // 2. Render lịch sử mượn đồ / mượn ghế
+    function renderItemHistory() {
+      const tbody = document.getElementById("itemHistoryBody");
+      tbody.innerHTML = "";
+
+      if (!state.historyItems || state.historyItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:15px;">Chưa có dữ liệu lịch sử mượn đồ.</td></tr>`;
+        return;
+      }
+
+      state.historyItems.forEach((i, idx) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="text-align:center;">${idx + 1}</td>
+          <td><b>${i.id}</b></td>
+          <td><b>${i.itemName}</b></td>
+          <td style="text-align:center;">${i.qty}</td>
+          <td>${i.fromRoom}</td>
+          <td>${i.toRoom}</td>
+          <td>${i.borrower}</td>
+          <td>${i.borrowDate}</td>
+          <td>${i.returnDate}</td>
+          <td>${i.status}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // 3. Render lịch sử sửa chữa thiết bị
+    function renderRepairHistory() {
+      const tbody = document.getElementById("repairHistoryBody");
+      tbody.innerHTML = "";
+
+      if (!state.historyRepairs || state.historyRepairs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:15px;">Chưa có dữ liệu lịch sử sửa chữa thiết bị.</td></tr>`;
+        return;
+      }
+
+      state.historyRepairs.forEach((rp, idx) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="text-align:center;">${idx + 1}</td>
+          <td><b>${rp.id}</b></td>
+          <td><a href="room-detail.html?id=${rp.roomId}"><b>${rp.roomId}</b></a></td>
+          <td><b>${rp.assetName}</b></td>
+          <td>${rp.issue}</td>
+          <td>${rp.technician}</td>
+          <td>${rp.startDate}</td>
+          <td>${rp.finishDate}</td>
+          <td>${rp.solution}</td>
+          <td style="text-align:center;"><b>${rp.status}</b></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    renderRoomHistory();
+    renderItemHistory();
+    renderRepairHistory();
+  </script>
+</body>
+</html>

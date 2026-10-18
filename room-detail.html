@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Chi tiết & Sơ đồ phòng học - F-CAMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <script src="data.js"></script>
+  <script>renderHeader('rooms');</script>
+
+  <p><a href="index.html">&laquo; Quay lại danh sách phòng học</a></p>
+
+  <h1 id="roomTitle">Chi tiết phòng học</h1>
+
+  <!-- Phần 1: Bảng 4 thiết bị cốt lõi -->
+  <h2>1. Danh mục 4 thiết bị cốt lõi trong phòng</h2>
+  <table class="data-table" style="max-width: 800px;">
+    <thead>
+      <tr>
+        <th style="width: 150px;">Thiết bị</th>
+        <th style="width: 180px;">Tên / Model</th>
+        <th style="width: 130px; text-align: center;">Tình trạng</th>
+        <th>Ghi chú sự cố</th>
+        <th id="thStaffAction" style="width: 140px; text-align: center; display: none;">Cập nhật (IT)</th>
+      </tr>
+    </thead>
+    <tbody id="assetTableBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <!-- Phần 2: Sơ đồ bàn ghế Top-down hoàn toàn trắng đen -->
+  <h2>2. Sơ đồ bố trí bàn ghế sinh viên (Nhìn từ trên xuống)</h2>
+  
+  <div class="room-blueprint-box">
+    <div class="stage-bar">BỤC GIẢNG & BẢNG VIẾT (ĐẦU PHÒNG HỌC)</div>
+
+    <div style="margin-bottom: 8px; font-size: 13px;">
+      • Ô viền liền: Đủ ghế &nbsp;&nbsp;&nbsp;
+      • Ô viền đứt nét: Ghế đang thiếu (nhấn vào ô để xem vị trí) &nbsp;&nbsp;&nbsp;
+      • Ô viền đậm: Ghế mượn thêm
+    </div>
+
+    <div class="chairs-simple-grid" id="chairGrid">
+      <!-- Render các ô ghế -->
+    </div>
+  </div>
+
+  <!-- Hộp thông tin truy vết khi nhấn vào ghế thiếu (viền đen nền trắng) -->
+  <div id="traceBox" style="display: none; max-width: 750px;" class="alert-box">
+    <h3 style="margin-top: 0; font-size: 15px;">Thông tin truy vết ghế điều chuyển:</h3>
+    <div id="traceContent"></div>
+    <div style="margin-top: 10px;" id="traceActionWrap"></div>
+  </div>
+
+  <!-- Phần 3: Form báo hỏng sự cố nhanh -->
+  <h2>3. Gửi báo hỏng thiết bị phòng học</h2>
+  <fieldset>
+    <legend>Phiếu báo hỏng kỹ thuật</legend>
+    <form id="reportForm">
+      <div class="form-group">
+        <label>Thiết bị báo hỏng:</label>
+        <select id="repAsset" style="width: 250px;">
+          <option value="projector">Máy chiếu</option>
+          <option value="acLeft">Điều hòa 1 (Trái)</option>
+          <option value="acRight">Điều hòa 2 (Phải)</option>
+          <option value="tv">Smart TV</option>
+          <option value="chairs">Bàn ghế học sinh (Gãy / Thiếu)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Mô tả tình trạng:</label>
+        <input type="text" id="repDesc" style="width: 380px;" placeholder="Ví dụ: Máy chiếu không lên nguồn, điều hòa chảy nước..." required>
+      </div>
+
+      <div style="margin-left: 185px;">
+        <input type="submit" value="Gửi báo hỏng cho IT">
+      </div>
+    </form>
+  </fieldset>
+
+  <script>
+    const urlParams = new URLSearchParams(location.search);
+    const roomId = urlParams.get('id') || 'BE-301';
+    const currentUser = getUser();
+
+    function renderRoomDetail() {
+      const state = getState();
+      const room = state.rooms.find(r => r.id === roomId);
+
+      if (!room) {
+        document.body.innerHTML = `<h2>Không tìm thấy phòng học ${roomId}!</h2><p><a href="index.html">Quay lại danh sách</a></p>`;
+        return;
+      }
+
+      document.getElementById("roomTitle").textContent = 
+        `Phòng ${room.id} (Tòa ${room.building} - Tầng ${room.floor}) — Hiện có: ${room.cur} / Chuẩn: ${room.std} ghế`;
+
+      // 1. Render bảng 4 thiết bị
+      const isStaff = currentUser && (currentUser.role === 'IT_STAFF' || currentUser.role === 'ADMIN');
+      if (isStaff) {
+        document.getElementById("thStaffAction").style.display = "";
+      }
+
+      const tbody = document.getElementById("assetTableBody");
+      tbody.innerHTML = "";
+
+      const assetList = [
+        { key: "projector", label: "Máy chiếu", data: room.assets.projector },
+        { key: "acLeft",    label: "Điều hòa 1 (Trái)", data: room.assets.acLeft },
+        { key: "acRight",   label: "Điều hòa 2 (Phải)", data: room.assets.acRight },
+        { key: "tv",        label: "Smart TV", data: room.assets.tv }
+      ];
+
+      assetList.forEach(item => {
+        let stText = "Tốt";
+        if (item.data.status === "FAULTY") stText = "Hỏng";
+        if (item.data.status === "REPAIRING") stText = "Đang sửa";
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td><b>${item.label}</b></td>
+          <td>${item.data.name}</td>
+          <td style="text-align: center;">${stText}</td>
+          <td>${item.data.note ? item.data.note : 'Bình thường'}</td>
+          ${isStaff ? `
+            <td style="text-align:center;">
+              <select onchange="updateAssetStatus('${item.key}', this.value)" style="font-size:12px;">
+                <option value="ACTIVE" ${item.data.status === 'ACTIVE' ? 'selected' : ''}>Tốt</option>
+                <option value="REPAIRING" ${item.data.status === 'REPAIRING' ? 'selected' : ''}>Đang sửa</option>
+                <option value="FAULTY" ${item.data.status === 'FAULTY' ? 'selected' : ''}>Hỏng</option>
+              </select>
+            </td>
+          ` : ''}
+        `;
+        tbody.appendChild(row);
+      });
+
+      // 2. Render lưới bàn ghế Top-down (hoàn toàn trắng đen)
+      const grid = document.getElementById("chairGrid");
+      grid.innerHTML = "";
+
+      const maxChairs = Math.max(room.cur, room.std);
+      for (let i = 1; i <= maxChairs; i++) {
+        const box = document.createElement("div");
+
+        if (i <= Math.min(room.cur, room.std)) {
+          box.className = "chair-box";
+          box.textContent = `#${i}`;
+        } else if (i > room.cur && i <= room.std) {
+          box.className = "chair-box missing";
+          box.innerHTML = `#${i}<br><small>[Thiếu]</small>`;
+          box.title = `Ghế #${i} đang thiếu. Nhấn để xem vị trí hiện tại!`;
+          box.onclick = function() {
+            showChairTrace(room, i);
+          };
+        } else {
+          box.className = "chair-box extra";
+          box.innerHTML = `+${i - room.std}<br><small>[Mượn]</small>`;
+        }
+        grid.appendChild(box);
+      }
+    }
+
+    // Hiển thị vị trí ghế thiếu (thuần text không màu)
+    function showChairTrace(room, seatNum) {
+      const state = getState();
+      const transfer = state.transfers.find(t => t.from === room.id);
+      const traceBox = document.getElementById("traceBox");
+      const traceContent = document.getElementById("traceContent");
+      const traceActionWrap = document.getElementById("traceActionWrap");
+
+      traceBox.style.display = "block";
+
+      if (transfer) {
+        traceContent.innerHTML = `
+          Ghế số <b>#${seatNum}</b> của phòng <b>${room.id}</b> hiện đang nằm trong đợt chuyển ghế sang phòng <b><a href="room-detail.html?id=${transfer.to}">${transfer.to}</a></b>.<br>
+          • <b>Số lượng mượn:</b> ${transfer.qty} ghế.<br>
+          • <b>Lý do:</b> ${transfer.reason}.<br>
+          • <b>Người phụ trách chuyển:</b> ${transfer.by} (${transfer.time}).
+        `;
+
+        const isStaff = currentUser && (currentUser.role === 'IT_STAFF' || currentUser.role === 'ADMIN');
+        if (isStaff) {
+          traceActionWrap.innerHTML = `
+            <button type="button" onclick="recoverChairs('${room.id}', '${transfer.to}', ${transfer.qty})">
+              [Thu hồi ${transfer.qty} ghế về lại phòng ${room.id}]
+            </button>
+          `;
+        } else {
+          traceActionWrap.innerHTML = `<i>(Chỉ Cán bộ IT mới có quyền thao tác thu hồi ghế trên hệ thống)</i>`;
+        }
+      } else {
+        traceContent.innerHTML = `Phòng ${room.id} đang bị thiếu ${room.std - room.cur} ghế so với định mức chuẩn ${room.std} ghế.`;
+        traceActionWrap.innerHTML = "";
+      }
+
+      traceBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Thu hồi ghế
+    function recoverChairs(fromRoomId, toRoomId, qty) {
+      const state = getState();
+      const rf = state.rooms.find(r => r.id === fromRoomId);
+      const rt = state.rooms.find(r => r.id === toRoomId);
+
+      if (rf) rf.cur = rf.std;
+      if (rt) rt.cur = rt.std;
+
+      // Xóa bản ghi transfer
+      state.transfers = state.transfers.filter(t => !(t.from === fromRoomId && t.to === toRoomId));
+      saveState(state);
+
+      alert(`Đã thu hồi thành công ${qty} ghế về lại phòng ${fromRoomId}!`);
+      document.getElementById("traceBox").style.display = "none";
+      renderRoomDetail();
+    }
+
+    // Cập nhật trạng thái thiết bị trực tiếp bởi IT
+    function updateAssetStatus(assetKey, newStatus) {
+      const state = getState();
+      const room = state.rooms.find(r => r.id === roomId);
+      if (room && room.assets[assetKey]) {
+        room.assets[assetKey].status = newStatus;
+        if (newStatus === 'ACTIVE') room.assets[assetKey].note = "";
+        saveState(state);
+        alert(`Đã cập nhật trạng thái thiết bị thành công!`);
+        renderRoomDetail();
+      }
+    }
+
+    // Gửi báo hỏng
+    document.getElementById("reportForm").onsubmit = function(e) {
+      e.preventDefault();
+      const assetKey = document.getElementById("repAsset").value;
+      const desc = document.getElementById("repDesc").value.trim();
+
+      const state = getState();
+      const room = state.rooms.find(r => r.id === roomId);
+      const newId = "TK-" + Math.floor(100 + Math.random() * 900);
+
+      let assetName = "Bàn ghế";
+      if (assetKey === 'projector') assetName = "Máy chiếu";
+      if (assetKey === 'acLeft') assetName = "Điều hòa 1 (Trái)";
+      if (assetKey === 'acRight') assetName = "Điều hòa 2 (Phải)";
+      if (assetKey === 'tv') assetName = "Smart TV";
+
+      state.tickets.unshift({
+        id: newId,
+        roomId: roomId,
+        assetKey: assetKey,
+        assetName: assetName,
+        desc: desc,
+        reporter: currentUser.fullName,
+        status: "OPEN",
+        createdAt: "Vừa xong"
+      });
+
+      if (room && room.assets[assetKey]) {
+        room.assets[assetKey].status = "FAULTY";
+        room.assets[assetKey].note = desc;
+      }
+
+      saveState(state);
+      alert(`Đã tạo phiếu báo hỏng ${newId} gửi đến bộ phận IT.`);
+      document.getElementById("repDesc").value = "";
+      renderRoomDetail();
+    };
+
+    renderRoomDetail();
+  </script>
+</body>
+</html>

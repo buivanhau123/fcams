@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Login Page - F-CAMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>Login Page</h1>
+
+  <div id="errorMsg" style="font-weight: bold; margin-bottom: 10px; display: none;"></div>
+
+  <form id="loginForm" method="POST" style="margin-bottom: 15px;">
+    <div style="margin-bottom: 8px;">
+      <label style="display: inline-block; width: 90px; font-weight: bold;">Username</label>
+      <input type="text" id="username" name="username" value="" required>
+    </div>
+    
+    <div style="margin-bottom: 12px;">
+      <label style="display: inline-block; width: 90px; font-weight: bold;">Password</label>
+      <input type="password" id="password" name="password" value="" required>
+    </div>
+
+    <div>
+      <input type="submit" value="Login">
+      <input type="reset" value="Reset">
+    </div>
+  </form>
+
+  <p>Need a new account? <a href="javascript:alert('Chức năng đăng ký tài khoản mới do Quản trị viên cấp phép.')">Register here</a></p>
+  <p><a href="javascript:alert('Hệ thống Quản lý tài sản phòng học Đại học FPT Hòa Lạc (PRJ301).')">Click here to get more knowledge</a></p>
+
+  <hr style="border: 0; border-top: 1px solid #000; margin: 25px 0 15px 0; max-width: 500px;">
+
+  <div style="border: 1px solid #000; padding: 10px; max-width: 480px; font-size: 13px;">
+    <b>Tài khoản dùng thử để Review / Demo:</b><br>
+    • <a href="javascript:void(0)" onclick="quickFill('hungnq', '123')">hungnq / 123 (Thầy Hùng - Giảng viên)</a><br>
+    • <a href="javascript:void(0)" onclick="quickFill('it_beta', '123')">it_beta / 123 (Anh Tuấn - Cán bộ IT)</a><br>
+    • <a href="javascript:void(0)" onclick="quickFill('admin', '123')">admin / 123 (Quản trị viên)</a>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    if (getUser()) {
+      const existing = getUser();
+      location.href = existing.role === "LECTURER" ? "schedule.html" : "schedule.html";
+    }
+
+    function quickFill(u, p) {
+      document.getElementById("username").value = u;
+      document.getElementById("password").value = p;
+    }
+
+    document.getElementById("loginForm").onsubmit = function(e) {
+      e.preventDefault();
+      const u = document.getElementById("username").value.trim();
+      const p = document.getElementById("password").value.trim();
+      const user = loginUser(u, p);
+      if (user) {
+        location.href = user.role === "LECTURER" ? "schedule.html" : "schedule.html";
+      } else {
+        const err = document.getElementById("errorMsg");
+        err.textContent = "Sai Username hoặc Password! Vui lòng thử lại.";
+        err.style.display = "block";
+      }
+    };
+  </script>
+</body>
+</html>

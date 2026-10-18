@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Danh sách phòng học & Tài sản - F-CAMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <script src="data.js"></script>
+  <script>
+    checkPermission(["IT_STAFF", "ADMIN"]);
+    renderHeader('rooms');
+  </script>
+
+  <h1>Classroom & Asset Management</h1>
+
+  <!-- Bộ lọc đơn giản -->
+  <div class="filter-box">
+    <form id="filterForm" onsubmit="return false;" style="margin: 0;">
+      <label><b>Tòa nhà:</b></label>
+      <select id="buildingFilter" onchange="filterRooms()">
+        <option value="ALL">-- Tất cả các tòa --</option>
+        <option value="Alpha">Tòa Alpha</option>
+        <option value="Beta">Tòa Beta</option>
+        <option value="Delta">Tòa Delta</option>
+        <option value="Epsilon">Tòa Epsilon</option>
+        <option value="Gamma">Tòa Gamma</option>
+      </select>
+      &nbsp;&nbsp;&nbsp;
+
+      <label><b>Trạng thái:</b></label>
+      <select id="statusFilter" onchange="filterRooms()">
+        <option value="ALL">-- Tất cả phòng --</option>
+        <option value="ISSUES">Phòng có vấn đề (Thiếu ghế / Hỏng máy)</option>
+        <option value="OK">Phòng hoạt động bình thường</option>
+      </select>
+      &nbsp;&nbsp;&nbsp;
+
+      <label><b>Tìm phòng:</b></label>
+      <input type="text" id="searchInput" placeholder="VD: BE-301..." onkeyup="filterRooms()">
+      <button type="button" onclick="filterRooms()">Tìm kiếm</button>
+    </form>
+  </div>
+
+  <div id="statSummary" style="margin-bottom: 10px; font-size: 13px; font-weight: bold;"></div>
+
+  <!-- Bảng danh sách phòng học phong cách HTML trắng đen chuẩn -->
+  <table class="data-table" id="roomTable">
+    <thead>
+      <tr>
+        <th style="width: 40px; text-align: center;">No.</th>
+        <th style="width: 100px;">Mã phòng</th>
+        <th style="width: 80px;">Tòa</th>
+        <th style="width: 60px; text-align: center;">Tầng</th>
+        <th style="width: 150px; text-align: center;">Số ghế (Hiện có / Chuẩn)</th>
+        <th>Máy chiếu</th>
+        <th>Điều hòa 1 (Trái)</th>
+        <th>Điều hòa 2 (Phải)</th>
+        <th>Smart TV</th>
+        <th style="width: 110px; text-align: center;">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody id="roomTableBody">
+      <!-- Render bằng JavaScript -->
+    </tbody>
+  </table>
+
+  <script>
+    // Trả về text thuần túy không màu mè
+    function getAssetText(asset) {
+      if (!asset) return 'Tốt';
+      if (asset.status === 'FAULTY') return 'Hỏng';
+      if (asset.status === 'REPAIRING') return 'Đang sửa';
+      return 'Tốt';
+    }
+
+    function getChairText(cur, std) {
+      if (cur < std) {
+        return `${cur}/${std} (Thiếu ${std - cur})`;
+      }
+      if (cur > std) {
+        return `${cur}/${std} (+${cur - std})`;
+      }
+      return `${cur}/${std} (Đủ)`;
+    }
+
+    function filterRooms() {
+      const state = getState();
+      const bVal = document.getElementById("buildingFilter").value;
+      const sVal = document.getElementById("statusFilter").value;
+      const qVal = document.getElementById("searchInput").value.trim().toUpperCase();
+
+      let list = state.rooms.filter(r => {
+        // Lọc tòa
+        if (bVal !== "ALL" && r.building !== bVal) return false;
+        
+        // Lọc tìm kiếm
+        if (qVal && !r.id.toUpperCase().includes(qVal)) return false;
+
+        // Lọc tình trạng
+        const hasAssetIssue = Object.values(r.assets).some(a => a.status !== 'ACTIVE');
+        const hasChairIssue = r.cur !== r.std;
+        const isProblem = hasAssetIssue || hasChairIssue;
+
+        if (sVal === "ISSUES" && !isProblem) return false;
+        if (sVal === "OK" && isProblem) return false;
+
+        return true;
+      });
+
+      // Render bảng trắng đen
+      const tbody = document.getElementById("roomTableBody");
+      tbody.innerHTML = "";
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px;">Không tìm thấy phòng nào phù hợp điều kiện lọc.</td></tr>`;
+      } else {
+        list.forEach((r, idx) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td style="text-align: center;">${idx + 1}</td>
+            <td><a href="room-detail.html?id=${encodeURIComponent(r.id)}"><b>${r.id}</b></a></td>
+            <td>Tòa ${r.building}</td>
+            <td style="text-align: center;">Tầng ${r.floor}</td>
+            <td style="text-align: center;">${getChairText(r.cur, r.std)}</td>
+            <td>${getAssetText(r.assets.projector)}</td>
+            <td>${getAssetText(r.assets.acLeft)}</td>
+            <td>${getAssetText(r.assets.acRight)}</td>
+            <td>${getAssetText(r.assets.tv)}</td>
+            <td style="text-align: center;">
+              <a href="room-detail.html?id=${encodeURIComponent(r.id)}">[Xem sơ đồ]</a>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      // Thống kê nhanh
+      document.getElementById("statSummary").textContent = 
+        `Hiển thị ${list.length} phòng (Tổng số trong hệ thống: ${state.rooms.length} phòng).`;
+    }
+
+    // Tự động load dữ liệu khi vào trang
+    filterRooms();
+  </script>
+</body>
+</html>

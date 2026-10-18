@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Làm đơn mượn phòng & mượn đồ - F-CAMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <script src="data.js"></script>
+  <script>
+    renderHeader('borrow');
+  </script>
+
+  <h1>Làm đơn Mượn phòng học & Mượn đồ dùng giảng đường</h1>
+
+  <!-- Phần 1: Biểu mẫu đăng ký mượn phòng / mượn đồ -->
+  <fieldset>
+    <legend>Thông tin đơn đăng ký mượn</legend>
+    <form id="borrowForm">
+      <div class="form-group">
+        <label>Hình thức mượn:</label>
+        <select id="borrowType" onchange="toggleBorrowType()" style="width: 280px;">
+          <option value="ROOM">Mượn cả phòng học</option>
+          <option value="CHAIRS">Mượn thêm ghế từ phòng khác</option>
+          <option value="EQUIPMENT">Mượn đồ dùng (Cáp HDMI / Micro / Bảng di động)</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="targetRoomWrap">
+        <label id="lblTargetRoom">Phòng cần sử dụng:</label>
+        <select id="targetRoom" style="width: 280px;">
+          <!-- Nạp bằng JS -->
+        </select>
+      </div>
+
+      <div class="form-group" id="fromRoomWrap" style="display: none;">
+        <label>Lấy ghế từ phòng:</label>
+        <select id="fromRoom" style="width: 280px;">
+          <!-- Nạp bằng JS -->
+        </select>
+      </div>
+
+      <div class="form-group" id="equipSelectWrap" style="display: none;">
+        <label>Chọn đồ dùng cần mượn:</label>
+        <select id="equipItem" style="width: 280px;">
+          <option value="Dây cáp HDMI 10m nối máy chiếu">Dây cáp HDMI 10m nối máy chiếu</option>
+          <option value="Bộ Micro không dây trợ giảng">Bộ Micro không dây trợ giảng</option>
+          <option value="Bảng trắng di động có bánh xe">Bảng trắng di động có bánh xe</option>
+          <option value="Ổ cắm điện kéo dài 5m (cho sinh viên cắm laptop)">Ổ cắm điện kéo dài 5m (cho sinh viên cắm laptop)</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="qtyWrap" style="display: none;">
+        <label id="lblQty">Số lượng:</label>
+        <input type="number" id="borrowQty" value="5" min="1" max="15" style="width: 80px;">
+      </div>
+
+      <div class="form-group">
+        <label>Ca học (Slot) cần mượn:</label>
+        <select id="slotSelect" style="width: 280px;">
+          <option value="Slot 1 (07:30 - 09:00)">Slot 1 (07:30 - 09:00)</option>
+          <option value="Slot 2 (09:10 - 10:40)">Slot 2 (09:10 - 10:40)</option>
+          <option value="Slot 3 (10:50 - 12:20)">Slot 3 (10:50 - 12:20)</option>
+          <option value="Slot 4 (12:50 - 14:20)">Slot 4 (12:50 - 14:20)</option>
+          <option value="Slot 5 (14:30 - 16:00)">Slot 5 (14:30 - 16:00)</option>
+          <option value="Slot 6 (16:10 - 17:40)">Slot 6 (16:10 - 17:40)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Mục đích sử dụng:</label>
+        <input type="text" id="purposeInput" style="width: 400px;" placeholder="Ví dụ: Dạy bù môn PRJ301, lớp thuyết trình cần micro..." required>
+      </div>
+
+      <div style="margin-left: 185px;">
+        <input type="submit" value="Gửi đơn mượn">
+        <input type="reset" value="Nhập lại">
+      </div>
+    </form>
+  </fieldset>
+
+  <!-- Phần 2: Bảng danh sách phòng & đồ đang mượn -->
+  <a name="list"></a>
+  <h2>Danh sách phòng học & Đồ dùng đang mượn (Báo trả phòng khi hết giờ)</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 35px; text-align: center;">No.</th>
+        <th style="width: 80px;">Mã đơn</th>
+        <th style="width: 130px;">Hình thức mượn</th>
+        <th style="width: 90px;">Phòng nhận</th>
+        <th>Nội dung mượn chi tiết</th>
+        <th style="width: 160px;">Ca học (Slot)</th>
+        <th style="width: 140px;">Người mượn</th>
+        <th style="width: 130px; text-align: center;">Tình trạng</th>
+        <th style="width: 140px; text-align: center;">Báo trả phòng/đồ</th>
+      </tr>
+    </thead>
+    <tbody id="borrowTableBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <script>
+    const currentUser = getUser();
+    const urlParams = new URLSearchParams(location.search);
+    const preRoom = urlParams.get("roomId");
+    const preSlot = urlParams.get("slot");
+
+    function populateRoomSelects() {
+      const state = getState();
+      const tSelect = document.getElementById("targetRoom");
+      const fSelect = document.getElementById("fromRoom");
+
+      tSelect.innerHTML = "";
+      fSelect.innerHTML = "";
+
+      state.rooms.forEach(r => {
+        tSelect.innerHTML += `<option value="${r.id}">${r.id} (Tòa ${r.building} - ${r.cur}/${r.std} ghế)</option>`;
+        fSelect.innerHTML += `<option value="${r.id}">${r.id} (Tòa ${r.building} - ${r.cur}/${r.std} ghế)</option>`;
+      });
+
+      if (preRoom) {
+        tSelect.value = preRoom;
+      }
+      if (preSlot) {
+        document.getElementById("slotSelect").value = preSlot;
+      }
+      if (fSelect.options.length > 1) {
+        fSelect.selectedIndex = 1;
+      }
+    }
+
+    function toggleBorrowType() {
+      const type = document.getElementById("borrowType").value;
+      const fromRoomWrap = document.getElementById("fromRoomWrap");
+      const equipWrap = document.getElementById("equipSelectWrap");
+      const qtyWrap = document.getElementById("qtyWrap");
+      const lblQty = document.getElementById("lblQty");
+      const lblTarget = document.getElementById("lblTargetRoom");
+
+      if (type === "ROOM") {
+        fromRoomWrap.style.display = "none";
+        equipWrap.style.display = "none";
+        qtyWrap.style.display = "none";
+        lblTarget.textContent = "Phòng cần sử dụng:";
+      } else if (type === "CHAIRS") {
+        fromRoomWrap.style.display = "block";
+        equipWrap.style.display = "none";
+        qtyWrap.style.display = "block";
+        lblQty.textContent = "Số lượng ghế cần mượn:";
+        lblTarget.textContent = "Phòng nhận thêm ghế:";
+      } else if (type === "EQUIPMENT") {
+        fromRoomWrap.style.display = "none";
+        equipWrap.style.display = "block";
+        qtyWrap.style.display = "block";
+        lblQty.textContent = "Số lượng đồ mượn:";
+        lblTarget.textContent = "Mang đồ đến phòng:";
+      }
+    }
+
+    function renderBorrowTable() {
+      const state = getState();
+      const tbody = document.getElementById("borrowTableBody");
+      tbody.innerHTML = "";
+
+      // Nếu là Giảng viên: Chỉ xem đơn mượn của chính mình
+      let list = state.borrows;
+      if (currentUser.role === 'LECTURER') {
+        list = state.borrows.filter(b => b.borrower === currentUser.username);
+      }
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:15px;">Chưa có đơn mượn phòng hoặc đồ dùng nào.</td></tr>`;
+        return;
+      }
+
+      list.forEach((b, idx) => {
+        let stText = 'Chờ IT duyệt';
+        if (b.status === 'BORROWED') stText = 'Đang sử dụng';
+        if (b.status === 'RETURN_REQUESTED') stText = 'Chờ IT nghiệm thu';
+        if (b.status === 'RETURNED') stText = 'Đã trả xong';
+
+        let typeStr = "Mượn cả phòng";
+        let detailStr = "Sử dụng phòng theo ca";
+
+        if (b.type === 'CHAIRS') {
+          typeStr = "Mượn thêm ghế";
+          detailStr = `Lấy ${b.qty} ghế từ phòng ${b.fromRoom}`;
+        } else if (b.type === 'EQUIPMENT') {
+          typeStr = "Mượn đồ dùng";
+          detailStr = `${b.itemName || 'Đồ dùng IT'} (Số lượng: ${b.qty || 1})`;
+        }
+
+        // Thao tác: Khi đang mượn có nút "Báo trả phòng / đồ"
+        let actionBtn = "-";
+        if (b.status === 'BORROWED') {
+          actionBtn = `<button type="button" onclick="requestReturn('${b.id}')" style="font-weight:bold;">[Báo trả phòng / đồ]</button>`;
+        } else if (b.status === 'RETURN_REQUESTED') {
+          actionBtn = `<span>Chờ IT đến nghiệm thu</span>`;
+        } else if (b.status === 'RETURNED') {
+          actionBtn = `<span>Hoàn tất</span>`;
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="text-align: center;">${idx + 1}</td>
+          <td><b>${b.id}</b></td>
+          <td>${typeStr}</td>
+          <td><b>${b.roomId}</b></td>
+          <td>${detailStr} (Lý do: ${b.purpose})</td>
+          <td>${b.slot}</td>
+          <td>${b.borrowerName}</td>
+          <td style="text-align: center;">${stText}</td>
+          <td style="text-align: center;">${actionBtn}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Giảng viên bấm Báo trả phòng / đồ
+    function requestReturn(borrowId) {
+      const state = getState();
+      const item = state.borrows.find(x => x.id === borrowId);
+      if (item) {
+        item.status = "RETURN_REQUESTED";
+        saveState(state);
+        alert(`Đã gửi yêu cầu nghiệm thu trả phòng cho đơn ${borrowId}. Cán bộ IT sẽ đến kiểm tra và khóa phòng.`);
+        renderBorrowTable();
+      }
+    }
+
+    // Gửi form mượn
+    document.getElementById("borrowForm").onsubmit = function(e) {
+      e.preventDefault();
+      const type = document.getElementById("borrowType").value;
+      const targetRoom = document.getElementById("targetRoom").value;
+      const fromRoom = document.getElementById("fromRoom").value;
+      const equipItem = document.getElementById("equipItem").value;
+      const qty = parseInt(document.getElementById("borrowQty").value, 10);
+      const slot = document.getElementById("slotSelect").value;
+      const purpose = document.getElementById("purposeInput").value.trim();
+
+      if (type === "CHAIRS" && targetRoom === fromRoom) {
+        alert("Lỗi: Phòng nhận ghế và phòng lấy ghế không được trùng nhau!");
+        return;
+      }
+
+      const state = getState();
+      const newId = "BR-" + Math.floor(100 + Math.random() * 900);
+
+      const newBorrow = {
+        id: newId,
+        type: type,
+        roomId: targetRoom,
+        slot: slot,
+        borrower: currentUser.username,
+        borrowerName: currentUser.fullName,
+        purpose: purpose,
+        status: "BORROWED",
+        createdAt: "Vừa xong"
+      };
+
+      if (type === "CHAIRS") {
+        newBorrow.fromRoom = fromRoom;
+        newBorrow.qty = qty;
+        // Cập nhật số ghế
+        const rf = state.rooms.find(r => r.id === fromRoom);
+        const rt = state.rooms.find(r => r.id === targetRoom);
+        if (rf && rt) {
+          rf.cur = Math.max(0, rf.cur - qty);
+          rt.cur = rt.cur + qty;
+          state.transfers.unshift({
+            id: "TR-" + Date.now().toString().slice(-4),
+            from: fromRoom,
+            to: targetRoom,
+            qty: qty,
+            reason: purpose,
+            by: currentUser.fullName,
+            time: "Vừa xong"
+          });
+        }
+      } else if (type === "EQUIPMENT") {
+        newBorrow.itemName = equipItem;
+        newBorrow.qty = qty;
+      }
+
+      state.borrows.unshift(newBorrow);
+      saveState(state);
+
+      alert(`Đã gửi đơn mượn thành công! Mã đơn: ${newId}.`);
+      document.getElementById("purposeInput").value = "";
+      renderBorrowTable();
+    };
+
+    populateRoomSelects();
+    renderBorrowTable();
+  </script>
+</body>
+</html>

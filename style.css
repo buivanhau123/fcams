@@ -1,0 +1,214 @@
+/* ===== CSS Phong cách HTML/JSP đen trắng đơn giản (Không dùng màu sắc đánh dấu) ===== */
+body {
+  font-family: Arial, Tahoma, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 15px 30px;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Thanh điều hướng Menu trên cùng */
+.header-bar {
+  border-bottom: 2px solid #000000;
+  padding-bottom: 8px;
+  margin-bottom: 15px;
+}
+
+.welcome-msg {
+  color: #000000;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.nav-links {
+  background-color: #f2f2f2;
+  padding: 6px 10px;
+  border: 1px solid #000000;
+  margin-bottom: 15px;
+}
+
+.nav-links a {
+  color: #0000ee;
+  text-decoration: underline;
+  margin-right: 12px;
+}
+
+.nav-links a:visited {
+  color: #551a8b;
+}
+
+.nav-links a:hover {
+  color: #000000;
+}
+
+.nav-links a.active {
+  color: #000000;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* Tiêu đề trang */
+h1, h2, h3 {
+  font-family: 'Times New Roman', Times, serif;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  color: #000000;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+h2 {
+  font-size: 17px;
+  border-bottom: 1px solid #000000;
+  padding-bottom: 3px;
+  margin-top: 20px;
+}
+
+/* Bảng dữ liệu phong cách HTML trắng đen cổ điển */
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000000;
+  margin-top: 8px;
+  margin-bottom: 15px;
+  background-color: #ffffff;
+}
+
+table.data-table th, table.data-table td {
+  border: 1px solid #000000;
+  padding: 5px 8px;
+  text-align: left;
+  color: #000000;
+}
+
+table.data-table th {
+  background-color: #e6e6e6;
+  font-weight: bold;
+}
+
+/* Biểu mẫu và ô nhập liệu */
+fieldset {
+  border: 1px solid #000000;
+  padding: 12px 16px;
+  margin-bottom: 15px;
+  background-color: #ffffff;
+  max-width: 700px;
+}
+
+legend {
+  font-weight: bold;
+  padding: 0 6px;
+  color: #000000;
+}
+
+.form-group {
+  margin-bottom: 10px;
+}
+
+.form-group label {
+  display: inline-block;
+  width: 180px;
+  font-weight: bold;
+  color: #000000;
+}
+
+input[type="text"], input[type="password"], input[type="number"], select, textarea {
+  padding: 3px 5px;
+  border: 1px solid #000000;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+button, input[type="submit"], input[type="button"], input[type="reset"] {
+  padding: 3px 12px;
+  background-color: #f0f0f0;
+  border: 1px solid #000000;
+  font-size: 13px;
+  color: #000000;
+  cursor: pointer;
+}
+
+button:hover, input[type="submit"]:hover, input[type="button"]:hover, input[type="reset"]:hover {
+  background-color: #d9d9d9;
+}
+
+/* Bộ lọc phòng */
+.filter-box {
+  background-color: #f9f9f9;
+  border: 1px solid #000000;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+/* Sơ đồ bàn ghế tối giản hoàn toàn trắng đen */
+.room-blueprint-box {
+  border: 1px solid #000000;
+  background-color: #ffffff;
+  padding: 12px;
+  margin-bottom: 15px;
+  max-width: 750px;
+}
+
+.stage-bar {
+  text-align: center;
+  border: 1px solid #000000;
+  background-color: #f0f0f0;
+  padding: 5px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #000000;
+}
+
+.chairs-simple-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.chair-box {
+  border: 1px solid #000000;
+  background-color: #ffffff;
+  text-align: center;
+  padding: 5px 2px;
+  font-size: 12px;
+  color: #000000;
+}
+
+.chair-box.missing {
+  border: 1px dashed #000000;
+  background-color: #ffffff;
+  color: #000000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.chair-box.extra {
+  border: 2px solid #000000;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Hộp thông báo khung đen chữ đen */
+.alert-box {
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border: 1px solid #000000;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Chân trang */
+.footer-text {
+  margin-top: 30px;
+  border-top: 1px solid #000000;
+  padding-top: 8px;
+  font-size: 12px;
+  color: #000000;
+}

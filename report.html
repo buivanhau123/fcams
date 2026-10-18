@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Báo cáo thống kê - F-CAMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <script src="data.js"></script>
+  <script>
+    checkPermission(["ADMIN", "IT_STAFF"]);
+    renderHeader('report');
+  </script>
+
+  <h1>Báo cáo Thống kê Tài sản & Phòng học</h1>
+
+  <div style="margin-bottom: 12px;">
+    <button type="button" onclick="exportCSV()">
+      [Xuất dữ liệu ra file Excel (.CSV)]
+    </button>
+  </div>
+
+  <!-- Phần 1: Bảng tổng hợp số liệu toàn trường -->
+  <h2>1. Tổng hợp tình trạng 4 thiết bị cốt lõi trên toàn trường</h2>
+  <table class="data-table" style="max-width: 700px;">
+    <thead>
+      <tr>
+        <th>Hạng mục thiết bị</th>
+        <th style="text-align: center; width: 130px;">Hoạt động tốt</th>
+        <th style="text-align: center; width: 130px;">Đang sửa chữa</th>
+        <th style="text-align: center; width: 130px;">Hỏng hóc</th>
+        <th style="text-align: center; width: 110px;">Tổng số</th>
+      </tr>
+    </thead>
+    <tbody id="summaryTableBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <!-- Phần 2: Thống kê bàn ghế theo từng tòa nhà -->
+  <h2>2. Thống kê bàn ghế & thiết bị theo tòa nhà</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 40px; text-align: center;">No.</th>
+        <th>Tòa nhà</th>
+        <th style="text-align: center;">Tổng số phòng</th>
+        <th style="text-align: center;">Định mức ghế chuẩn</th>
+        <th style="text-align: center;">Số ghế thực tế</th>
+        <th style="text-align: center;">Chênh lệch ghế</th>
+        <th style="text-align: center;">Thiết bị gặp sự cố</th>
+      </tr>
+    </thead>
+    <tbody id="buildingTableBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <!-- Phần 3: Danh sách các phòng cần xử lý gấp -->
+  <h2>3. Danh sách các phòng đang có sự cố hoặc lệch ghế</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 40px; text-align: center;">No.</th>
+        <th style="width: 100px;">Mã phòng</th>
+        <th style="width: 100px;">Tòa nhà</th>
+        <th style="width: 150px; text-align: center;">Tình trạng ghế</th>
+        <th>Chi tiết thiết bị gặp sự cố</th>
+        <th style="width: 110px; text-align: center;">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody id="problemTableBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <script>
+    function renderReports() {
+      const state = getState();
+
+      // 1. Tổng hợp 4 thiết bị
+      let counts = {
+        projector: { ok: 0, rep: 0, bad: 0 },
+        ac: { ok: 0, rep: 0, bad: 0 },
+        tv: { ok: 0, rep: 0, bad: 0 }
+      };
+
+      state.rooms.forEach(r => {
+        // Projector
+        if (r.assets.projector.status === 'ACTIVE') counts.projector.ok++;
+        else if (r.assets.projector.status === 'REPAIRING') counts.projector.rep++;
+        else counts.projector.bad++;
+
+        // 2 Điều hòa
+        [r.assets.acLeft, r.assets.acRight].forEach(ac => {
+          if (ac.status === 'ACTIVE') counts.ac.ok++;
+          else if (ac.status === 'REPAIRING') counts.ac.rep++;
+          else counts.ac.bad++;
+        });
+
+        // TV
+        if (r.assets.tv.status === 'ACTIVE') counts.tv.ok++;
+        else if (r.assets.tv.status === 'REPAIRING') counts.tv.rep++;
+        else counts.tv.bad++;
+      });
+
+      const sBody = document.getElementById("summaryTableBody");
+      sBody.innerHTML = `
+        <tr>
+          <td><b>Máy chiếu (Projector)</b></td>
+          <td style="text-align: center;">${counts.projector.ok}</td>
+          <td style="text-align: center;">${counts.projector.rep}</td>
+          <td style="text-align: center;">${counts.projector.bad}</td>
+          <td style="text-align: center;">${counts.projector.ok + counts.projector.rep + counts.projector.bad}</td>
+        </tr>
+        <tr>
+          <td><b>Điều hòa nhiệt độ (2 máy / phòng)</b></td>
+          <td style="text-align: center;">${counts.ac.ok}</td>
+          <td style="text-align: center;">${counts.ac.rep}</td>
+          <td style="text-align: center;">${counts.ac.bad}</td>
+          <td style="text-align: center;">${counts.ac.ok + counts.ac.rep + counts.ac.bad}</td>
+        </tr>
+        <tr>
+          <td><b>Smart TV giảng đường</b></td>
+          <td style="text-align: center;">${counts.tv.ok}</td>
+          <td style="text-align: center;">${counts.tv.rep}</td>
+          <td style="text-align: center;">${counts.tv.bad}</td>
+          <td style="text-align: center;">${counts.tv.ok + counts.tv.rep + counts.tv.bad}</td>
+        </tr>
+      `;
+
+      // 2. Thống kê theo tòa
+      const buildings = ["Alpha", "Beta", "Delta", "Epsilon", "Gamma"];
+      const bBody = document.getElementById("buildingTableBody");
+      bBody.innerHTML = "";
+
+      buildings.forEach((bName, idx) => {
+        const bRooms = state.rooms.filter(r => r.building === bName);
+        let stdSum = 0;
+        let curSum = 0;
+        let issueCount = 0;
+
+        bRooms.forEach(r => {
+          stdSum += r.std;
+          curSum += r.cur;
+          if (Object.values(r.assets).some(a => a.status !== 'ACTIVE')) issueCount++;
+        });
+
+        const diff = curSum - stdSum;
+        let diffStr = '0 (Cân bằng)';
+        if (diff < 0) diffStr = `Thiếu ${Math.abs(diff)} ghế`;
+        if (diff > 0) diffStr = `Dư +${diff} ghế`;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="text-align: center;">${idx + 1}</td>
+          <td><b>Tòa ${bName}</b></td>
+          <td style="text-align: center;">${bRooms.length}</td>
+          <td style="text-align: center;">${stdSum}</td>
+          <td style="text-align: center;">${curSum}</td>
+          <td style="text-align: center;">${diffStr}</td>
+          <td style="text-align: center;">${issueCount > 0 ? `${issueCount} phòng có lỗi` : 'Không có'}</td>
+        `;
+        bBody.appendChild(row);
+      });
+
+      // 3. Danh sách phòng có vấn đề
+      const pBody = document.getElementById("problemTableBody");
+      pBody.innerHTML = "";
+
+      const problems = state.rooms.filter(r => r.cur !== r.std || Object.values(r.assets).some(a => a.status !== 'ACTIVE'));
+
+      if (problems.length === 0) {
+        pBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:15px;">Tất cả các phòng hiện đều đầy đủ ghế và thiết bị hoạt động tốt!</td></tr>`;
+      } else {
+        problems.forEach((r, idx) => {
+          let chairStr = `Đủ (${r.cur}/${r.std})`;
+          if (r.cur < r.std) chairStr = `Thiếu ${r.std - r.cur} ghế (${r.cur}/${r.std})`;
+          if (r.cur > r.std) chairStr = `Dư +${r.cur - r.std} ghế (${r.cur}/${r.std})`;
+
+          const badAssets = [];
+          if (r.assets.projector.status !== 'ACTIVE') badAssets.push(`Máy chiếu: ${r.assets.projector.note || 'Lỗi'}`);
+          if (r.assets.acLeft.status !== 'ACTIVE') badAssets.push(`ĐH Trái: ${r.assets.acLeft.note || 'Lỗi'}`);
+          if (r.assets.acRight.status !== 'ACTIVE') badAssets.push(`ĐH Phải: ${r.assets.acRight.note || 'Lỗi'}`);
+          if (r.assets.tv.status !== 'ACTIVE') badAssets.push(`Smart TV: ${r.assets.tv.note || 'Lỗi'}`);
+
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td style="text-align: center;">${idx + 1}</td>
+            <td><a href="room-detail.html?id=${r.id}"><b>${r.id}</b></a></td>
+            <td>Tòa ${r.building}</td>
+            <td style="text-align: center;">${chairStr}</td>
+            <td>${badAssets.length > 0 ? badAssets.join("; ") : 'Thiết bị bình thường'}</td>
+            <td style="text-align: center;"><a href="room-detail.html?id=${r.id}">[Xem xử lý]</a></td>
+          `;
+          pBody.appendChild(row);
+        });
+      }
+    }
+
+    // Xuất file CSV
+    function exportCSV() {
+      const state = getState();
+      let csvContent = "\uFEFF"; // UTF-8 BOM
+      csvContent += "Ma phong,Toa nha,Tang,Ghe thuc te,Ghe chuan,Chenh lech,May chieu,Dieu hoa trai,Dieu hoa phai,Smart TV\n";
+
+      state.rooms.forEach(r => {
+        const diff = r.cur - r.std;
+        const line = [
+          r.id,
+          r.building,
+          r.floor,
+          r.cur,
+          r.std,
+          diff,
+          r.assets.projector.status,
+          r.assets.acLeft.status,
+          r.assets.acRight.status,
+          r.assets.tv.status
+        ].join(",");
+        csvContent += line + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "Bao_Cao_Tai_San_Phong_Hoc_FCAMS.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      alert("Đã xuất file Bao_Cao_Tai_San_Phong_Hoc_FCAMS.csv thành công!");
+    }
+
+    renderReports();
+  </script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Lịch tuần & Xem phòng trống - F-CAMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <script src="data.js"></script>
+  <script>renderHeader('schedule');</script>
+
+  <h1>Lịch sử dụng phòng học & Tra cứu phòng trống trong tuần</h1>
+
+  <!-- Phần 1: Tra cứu nhanh phòng TRỐNG theo ngày & ca học -->
+  <fieldset>
+    <legend>Tra cứu phòng TRỐNG để làm đơn mượn</legend>
+    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+      <div>
+        <label style="font-weight: bold;">Chọn ngày trong tuần:</label>
+        <select id="searchDay" style="width: 130px;">
+          <option value="Thứ 2">Thứ 2</option>
+          <option value="Thứ 3">Thứ 3</option>
+          <option value="Thứ 4">Thứ 4</option>
+          <option value="Thứ 5">Thứ 5</option>
+          <option value="Thứ 6">Thứ 6</option>
+          <option value="Thứ 7">Thứ 7</option>
+          <option value="Chủ nhật">Chủ nhật</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-weight: bold;">Chọn ca học (Slot):</label>
+        <select id="searchSlot" style="width: 220px;">
+          <option value="1">Slot 1 (07:30 - 09:00)</option>
+          <option value="2">Slot 2 (09:10 - 10:40)</option>
+          <option value="3">Slot 3 (10:50 - 12:20)</option>
+          <option value="4">Slot 4 (12:50 - 14:20)</option>
+          <option value="5">Slot 5 (14:30 - 16:00)</option>
+          <option value="6">Slot 6 (16:10 - 17:40)</option>
+        </select>
+      </div>
+
+      <div>
+        <button type="button" onclick="findEmptyRooms()" style="font-weight: bold;">[Tìm phòng trống]</button>
+      </div>
+    </div>
+
+    <!-- Kết quả phòng trống -->
+    <div id="emptyRoomResultWrap" style="margin-top: 15px; display: none;">
+      <b>Các phòng TRỐNG có thể mượn tại <span id="lblDaySlot"></span>:</b>
+      <table class="data-table" style="margin-top: 8px;">
+        <thead>
+          <tr>
+            <th style="width: 35px; text-align: center;">No.</th>
+            <th style="width: 100px;">Mã phòng</th>
+            <th style="width: 80px;">Tòa</th>
+            <th style="width: 60px; text-align: center;">Tầng</th>
+            <th style="width: 120px; text-align: center;">Số lượng ghế</th>
+            <th>Tình trạng thiết bị cốt lõi</th>
+            <th style="width: 140px; text-align: center;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="emptyRoomTableBody">
+          <!-- Render JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </fieldset>
+
+  <!-- Phần 2: Bảng Thời khóa biểu 1 tuần của từng phòng -->
+  <h2>Lịch sử dụng chi tiết của phòng trong tuần (Từ Thứ 2 đến Chủ nhật)</h2>
+  
+  <div style="margin-bottom: 10px;">
+    <label><b>Xem lịch của phòng:</b></label>
+    <select id="selectedRoom" onchange="renderWeeklyTimetable()" style="width: 200px;">
+      <!-- Nạp bằng JS -->
+    </select>
+    &nbsp;&nbsp;&nbsp;
+    <span style="font-size: 13px;">(Ô ghi <b>[TRỐNG]</b> là phòng chưa có lớp, có thể nhấn vào để làm đơn mượn)</span>
+  </div>
+
+  <table class="data-table" style="text-align: center;">
+    <thead>
+      <tr>
+        <th style="width: 160px;">Ca học (Slot)</th>
+        <th>Thứ 2</th>
+        <th>Thứ 3</th>
+        <th>Thứ 4</th>
+        <th>Thứ 5</th>
+        <th>Thứ 6</th>
+        <th>Thứ 7</th>
+        <th>Chủ nhật</th>
+      </tr>
+    </thead>
+    <tbody id="timetableBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <script>
+    const state = getState();
+    const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+    const slots = [
+      { num: 1, time: "Slot 1 (07:30 - 09:00)" },
+      { num: 2, time: "Slot 2 (09:10 - 10:40)" },
+      { num: 3, time: "Slot 3 (10:50 - 12:20)" },
+      { num: 4, time: "Slot 4 (12:50 - 14:20)" },
+      { num: 5, time: "Slot 5 (14:30 - 16:00)" },
+      { num: 6, time: "Slot 6 (16:10 - 17:40)" }
+    ];
+
+    // Nạp danh sách phòng vào dropdown
+    function initRoomSelect() {
+      const sel = document.getElementById("selectedRoom");
+      sel.innerHTML = "";
+      state.rooms.forEach(r => {
+        sel.innerHTML += `<option value="${r.id}">${r.id} (Tòa ${r.building} - ${r.cur} ghế)</option>`;
+      });
+      renderWeeklyTimetable();
+    }
+
+    // 1. Render thời khóa biểu tuần
+    function renderWeeklyTimetable() {
+      const curRoomId = document.getElementById("selectedRoom").value;
+      const tbody = document.getElementById("timetableBody");
+      tbody.innerHTML = "";
+
+      slots.forEach(slot => {
+        const row = document.createElement("tr");
+        let cellsHtml = `<td style="font-weight:bold; background-color:#f5f5f5;">${slot.time}</td>`;
+
+        days.forEach(day => {
+          // Tìm lịch bận trong state.schedule
+          const match = state.schedule.find(s => s.roomId === curRoomId && s.day === day && s.slot === slot.num);
+          
+          if (match) {
+            cellsHtml += `<td style="background-color: #fafafa;"><b>${match.info}</b></td>`;
+          } else {
+            // Phòng TRỐNG
+            cellsHtml += `<td>
+              <a href="borrow.html?roomId=${encodeURIComponent(curRoomId)}&slot=${encodeURIComponent(slot.time)}" title="Nhấn để mượn phòng này">
+                [TRỐNG]
+              </a>
+            </td>`;
+          }
+        });
+
+        row.innerHTML = cellsHtml;
+        tbody.appendChild(row);
+      });
+    }
+
+    // 2. Tra cứu phòng TRỐNG nhanh
+    function findEmptyRooms() {
+      const day = document.getElementById("searchDay").value;
+      const slotNum = parseInt(document.getElementById("searchSlot").value, 10);
+      const slotObj = slots.find(s => s.num === slotNum);
+
+      document.getElementById("lblDaySlot").textContent = `${day} - ${slotObj.time}`;
+      document.getElementById("emptyRoomResultWrap").style.display = "block";
+
+      const tbody = document.getElementById("emptyRoomTableBody");
+      tbody.innerHTML = "";
+
+      // Lọc các phòng KHÔNG có lịch bận vào ngày & slot đó
+      const busyRoomIds = state.schedule
+        .filter(s => s.day === day && s.slot === slotNum)
+        .map(s => s.roomId);
+
+      const emptyRooms = state.rooms.filter(r => !busyRoomIds.includes(r.id));
+
+      if (emptyRooms.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:15px;">Tất cả các phòng trong ca học này đều đã có lịch sử dụng.</td></tr>`;
+        return;
+      }
+
+      emptyRooms.forEach((r, idx) => {
+        let devStatus = "4/4 thiết bị tốt";
+        const badCount = Object.values(r.assets).filter(a => a.status !== 'ACTIVE').length;
+        if (badCount > 0) {
+          devStatus = `${badCount} thiết bị đang có lỗi`;
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="text-align:center;">${idx + 1}</td>
+          <td><b>${r.id}</b></td>
+          <td>Tòa ${r.building}</td>
+          <td style="text-align:center;">Tầng ${r.floor}</td>
+          <td style="text-align:center;">${r.cur} / ${r.std} ghế</td>
+          <td>${devStatus}</td>
+          <td style="text-align:center;">
+            <a href="borrow.html?roomId=${encodeURIComponent(r.id)}&slot=${encodeURIComponent(slotObj.time)}">
+              [Làm đơn mượn]
+            </a>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    initRoomSelect();
+    findEmptyRooms();
+  </script>
+</body>
+</html>

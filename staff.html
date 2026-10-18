@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Nghiệp vụ Cán bộ IT - F-CAMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <script src="data.js"></script>
+  <script>
+    checkPermission(["IT_STAFF", "ADMIN"]);
+    renderHeader('staff');
+  </script>
+
+  <h1>Nghiệp vụ Cán bộ IT & Quản lý thiết bị</h1>
+
+  <!-- Phần 1: Bảng tiếp nhận & xử lý sự cố thiết bị -->
+  <h2>1. Danh sách phiếu báo hỏng thiết bị (Tickets)</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 35px; text-align: center;">No.</th>
+        <th style="width: 80px;">Mã phiếu</th>
+        <th style="width: 90px;">Mã phòng</th>
+        <th style="width: 140px;">Thiết bị báo hỏng</th>
+        <th>Mô tả chi tiết sự cố</th>
+        <th style="width: 150px;">Người gửi báo</th>
+        <th style="width: 130px; text-align: center;">Trạng thái</th>
+        <th style="width: 150px; text-align: center;">Thao tác IT</th>
+      </tr>
+    </thead>
+    <tbody id="ticketTableBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <!-- Phần 2: Nghiệm thu nhận trả phòng & Kiểm tra tắt điều hòa -->
+  <h2>2. Nghiệm thu nhận trả phòng học & Thu hồi ghế</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 35px; text-align: center;">No.</th>
+        <th style="width: 80px;">Mã phiếu</th>
+        <th style="width: 90px;">Phòng</th>
+        <th style="width: 140px;">Hình thức mượn</th>
+        <th style="width: 160px;">Ca học (Slot)</th>
+        <th>Người mượn</th>
+        <th style="width: 140px; text-align: center;">Tình trạng phiếu</th>
+        <th style="width: 150px; text-align: center;">Nghiệm thu</th>
+      </tr>
+    </thead>
+    <tbody id="handoverTableBody">
+      <!-- Render JavaScript -->
+    </tbody>
+  </table>
+
+  <!-- Khung Checklist nghiệm thu nhận trả phòng (viền đen nền trắng) -->
+  <div id="inspectBox" style="display: none; max-width: 750px; margin-top: 15px;" class="alert-box">
+    <h3 style="margin-top: 0; font-size: 15px;">Biên bản Kiểm tra & Nghiệm thu phòng học: <span id="inspectRoomTitle"></span></h3>
+    
+    <form id="inspectForm">
+      <input type="hidden" id="inspectBorrowId">
+      <input type="hidden" id="inspectRoomId">
+
+      <div style="margin-bottom: 10px;">
+        <label><b>1. Kiểm tra tắt thiết bị điện:</b></label><br>
+        <input type="checkbox" id="chkDevices" checked> Máy chiếu, Smart TV hoạt động bình thường, đã tắt nguồn.<br>
+        <input type="checkbox" id="chkAirConditioner"> <b>Đã kiểm tra tắt cả 2 điều hòa (Trái & Phải)</b> để tránh lãng phí điện năng campus.
+      </div>
+
+      <div style="margin-bottom: 10px;">
+        <label><b>2. Đếm số lượng ghế thực tế tại phòng:</b></label><br>
+        <input type="number" id="actualChairs" style="width: 80px;" min="0" max="60" value="35"> ghế (Định mức chuẩn của phòng: <span id="stdChairHint">35</span> ghế)
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <label><b>3. Ghi chú của IT:</b></label><br>
+        <input type="text" id="inspectNote" style="width: 90%;" value="Đã kiểm tra đủ thiết bị, tắt điều hòa và hoàn trả đủ ghế.">
+      </div>
+
+      <div>
+        <input type="submit" value="Xác nhận hoàn tất nghiệm thu & Khóa phòng">
+        <input type="button" value="Đóng" onclick="document.getElementById('inspectBox').style.display='none'">
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const currentUser = getUser();
+
+    // 1. Render danh sách Ticket báo hỏng
+    function renderTickets() {
+      const state = getState();
+      const tbody = document.getElementById("ticketTableBody");
+      tbody.innerHTML = "";
+
+      if (state.tickets.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:15px;">Không có sự cố thiết bị nào cần xử lý.</td></tr>`;
+        return;
+      }
+
+      state.tickets.forEach((t, idx) => {
+        let stText = 'Mới tiếp nhận';
+        if (t.status === 'IN_PROGRESS') stText = 'Đang sửa chữa';
+        if (t.status === 'RESOLVED') stText = 'Đã khắc phục';
+
+        let actionBtns = "-";
+        if (t.status === 'OPEN') {
+          actionBtns = `
+            <button type="button" onclick="changeTicketStatus('${t.id}', 'IN_PROGRESS')" style="font-size:12px;">[Nhận sửa]</button>
+            <button type="button" onclick="changeTicketStatus('${t.id}', 'RESOLVED')" style="font-size:12px;">[Xong]</button>
+          `;
+        } else if (t.status === 'IN_PROGRESS') {
+          actionBtns = `<button type="button" onclick="changeTicketStatus('${t.id}', 'RESOLVED')" style="font-size:12px;">[Xác nhận đã sửa xong]</button>`;
+        } else {
+          actionBtns = `Đã đóng`;
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="text-align: center;">${idx + 1}</td>
+          <td><b>${t.id}</b></td>
+          <td><a href="room-detail.html?id=${t.roomId}"><b>${t.roomId}</b></a></td>
+          <td><b>${t.assetName}</b></td>
+          <td>${t.desc}</td>
+          <td>${t.reporter}</td>
+          <td style="text-align: center;">${stText}</td>
+          <td style="text-align: center;">${actionBtns}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Đổi trạng thái Ticket
+    function changeTicketStatus(ticketId, newStatus) {
+      const state = getState();
+      const t = state.tickets.find(x => x.id === ticketId);
+      if (t) {
+        t.status = newStatus;
+        const room = state.rooms.find(r => r.id === t.roomId);
+        if (room && room.assets[t.assetKey]) {
+          if (newStatus === 'RESOLVED') {
+            room.assets[t.assetKey].status = 'ACTIVE';
+            room.assets[t.assetKey].note = "";
+          } else if (newStatus === 'IN_PROGRESS') {
+            room.assets[t.assetKey].status = 'REPAIRING';
+          }
+        }
+        saveState(state);
+        alert(`Đã cập nhật trạng thái phiếu ${ticketId}!`);
+        renderTickets();
+      }
+    }
+
+    // 2. Render danh sách Nghiệm thu mượn phòng
+    function renderHandovers() {
+      const state = getState();
+      const tbody = document.getElementById("handoverTableBody");
+      tbody.innerHTML = "";
+
+      const activeBorrows = state.borrows.filter(b => b.status === 'RETURN_REQUESTED' || b.status === 'BORROWED');
+
+      if (activeBorrows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:15px;">Không có phòng nào đang chờ nghiệm thu trả.</td></tr>`;
+        return;
+      }
+
+      activeBorrows.forEach((b, idx) => {
+        let stStr = b.status === 'RETURN_REQUESTED' ? '<b>Chờ nghiệm thu</b>' : 'Đang sử dụng';
+        let actionBtn = `<button type="button" onclick="openInspect('${b.id}')" style="font-size:12px;">[Nghiệm thu nhận trả]</button>`;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="text-align: center;">${idx + 1}</td>
+          <td><b>${b.id}</b></td>
+          <td><a href="room-detail.html?id=${b.roomId}"><b>${b.roomId}</b></a></td>
+          <td>${b.type === 'CHAIRS' ? `Mượn ${b.qty} ghế (từ ${b.fromRoom})` : 'Mượn cả phòng'}</td>
+          <td>${b.slot}</td>
+          <td>${b.borrowerName}</td>
+          <td style="text-align: center;">${stStr}</td>
+          <td style="text-align: center;">${actionBtn}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Mở popup nghiệm thu
+    function openInspect(borrowId) {
+      const state = getState();
+      const b = state.borrows.find(x => x.id === borrowId);
+      if (!b) return;
+
+      const room = state.rooms.find(r => r.id === b.roomId);
+      const box = document.getElementById("inspectBox");
+
+      document.getElementById("inspectBorrowId").value = b.id;
+      document.getElementById("inspectRoomId").value = b.roomId;
+      document.getElementById("inspectRoomTitle").textContent = `${b.roomId} (Phiếu: ${b.id})`;
+      document.getElementById("actualChairs").value = room ? room.std : 35;
+      document.getElementById("stdChairHint").textContent = room ? room.std : 35;
+      document.getElementById("chkAirConditioner").checked = false;
+
+      box.style.display = "block";
+      box.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Xác nhận nghiệm thu
+    document.getElementById("inspectForm").onsubmit = function(e) {
+      e.preventDefault();
+      const chkAc = document.getElementById("chkAirConditioner").checked;
+      if (!chkAc) {
+        alert("Cảnh báo: Bạn phải kiểm tra và xác nhận ĐÃ TẮT CẢ 2 ĐIỀU HÒA trước khi ký biên bản nghiệm thu!");
+        return;
+      }
+
+      const borrowId = document.getElementById("inspectBorrowId").value;
+      const state = getState();
+      const b = state.borrows.find(x => x.id === borrowId);
+      if (b) {
+        b.status = "RETURNED";
+        
+        if (b.type === 'CHAIRS' && b.fromRoom) {
+          const rf = state.rooms.find(r => r.id === b.fromRoom);
+          const rt = state.rooms.find(r => r.id === b.roomId);
+          if (rf) rf.cur = rf.std;
+          if (rt) rt.cur = rt.std;
+          state.transfers = state.transfers.filter(t => !(t.from === b.fromRoom && t.to === b.roomId));
+        }
+
+        saveState(state);
+        alert(`Nghiệm thu thành công phiếu ${borrowId}. Phòng đã được hoàn trả và khóa an toàn!`);
+        document.getElementById("inspectBox").style.display = "none";
+        renderHandovers();
+      }
+    };
+
+    renderTickets();
+    renderHandovers();
+  </script>
+</body>
+</html>
