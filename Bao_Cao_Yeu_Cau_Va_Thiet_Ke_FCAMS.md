@@ -15,9 +15,9 @@
 
 | STT | Mã sinh viên | Họ và tên | Tỷ lệ đóng góp (%) |
 | :---: | :---: | :--- | :---: |
-| 1 | HE190001 | Trần Văn Tuấn | 40% |
-| 2 | HE190002 | Nguyễn Quốc Hùng | 30% |
-| 3 | HE190003 | Lê Hoàng Nam | 30% |
+| 1 | HE201049 | Bùi Văn Hậu | fontend |
+| 2 | HE204696 | Bùi Văn Hoàng | backend |
+| 3 | HE190003 | Lê Hoàng Nam | data |
 
 ---
 
