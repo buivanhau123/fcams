@@ -1,4 +1,4 @@
-# F-CAMS Simple - Hệ Thống Quản Lý Tài Sản Phòng Học
+﻿# F-CAMS Simple - Hệ Thống Quản Lý Tài Sản Phòng Học
 
 > **Hệ thống Quản lý Tài sản Phòng học Trường Đại học FPT Hòa Lạc (PRJ301 - Java Web Application)**
 
@@ -46,7 +46,7 @@ Cơ sở dữ liệu gồm 4 bảng chuẩn hóa:
 3. `assets`: Danh mục tài sản, số serial, đơn giá, ngày bàn giao, phòng bố trí, trạng thái (`ACTIVE`, `MAINTENANCE`, `BROKEN`).
 4. `room_assets`: Danh mục thiết bị cố định trang bị trong từng phòng học.
 
-*Script khởi tạo và nạp dữ liệu mẫu nằm tại:* `DATASQL/fcams_simple.sql`
+*Script khởi tạo và nạp dữ liệu mẫu nằm tại:* `database/fcams_simple.sql`
 
 ---
 
@@ -54,7 +54,7 @@ Cơ sở dữ liệu gồm 4 bảng chuẩn hóa:
 
 ### 1. Khởi tạo Cơ sở Dữ liệu
 1. Mở **SQL Server Management Studio (SSMS)** hoặc công cụ quản trị SQL Server.
-2. Chạy toàn bộ nội dung file `DATASQL/fcams_simple.sql`.
+2. Chạy toàn bộ nội dung file `database/fcams_simple.sql`.
 3. Kiểm tra cấu hình kết nối trong file: `src/java/dal/DBContext.java`:
    - URL: `jdbc:sqlserver://localhost:1433;databaseName=FCAMS_DB;encrypt=false;trustServerCertificate=true`
    - User: `sa`
@@ -85,7 +85,7 @@ Cơ sở dữ liệu gồm 4 bảng chuẩn hóa:
 ## 📂 Cấu trúc Thư mục Nguồn
 ```text
 FCAMS-Simple/
-├── DATASQL/
+├── database/
 │   └── fcams_simple.sql         # Script SQL Server 2022
 ├── src/
 │   └── java/

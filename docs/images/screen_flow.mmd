@@ -1,0 +1,32 @@
+flowchart TD
+    Login["Màn hình Đăng nhập (/login)"]
+    Main["Thanh Điều hướng Chính\n(Home | Tài sản | Phòng học | Đăng xuất)"]
+    Logout["Đăng xuất (/logout)"]
+    Dash["Bảng điều khiển Thống kê (/dashboard)"]
+    Assets["Quản lý Tài sản (/assets)"]
+    Rooms["Quản lý Phòng học (/rooms)"]
+    RoomDetail["Chi tiết Phòng học (/room-detail)"]
+    AddAsset["Form Ghi nhận Tài sản mới"]
+    EditAsset["Form Cập nhật Thông tin Tài sản"]
+    TransferAsset["Form Chuyển phòng Tài sản"]
+    DeleteAsset["Thao tác Xóa Tài sản (Admin)"]
+    AddRoom["Form Thêm Phòng học mới (Admin)"]
+    EditRoom["Form Sửa Phòng học (Admin)"]
+    DeleteRoom["Thao tác Xóa Phòng học (Admin)"]
+    Login -->|"Đăng nhập thành công"| Main
+    Main --> Logout
+    Logout --> Login
+    Main --> Dash
+    Main --> Assets
+    Main --> Rooms
+    Assets --> AddAsset
+    Assets --> EditAsset
+    Assets --> TransferAsset
+    Assets --> DeleteAsset
+    Assets -->|"Nhấn vào Mã phòng"| RoomDetail
+    Rooms --> AddRoom
+    Rooms --> EditRoom
+    Rooms --> DeleteRoom
+    Rooms -->|"Nhấn Xem chi tiết"| RoomDetail
+    RoomDetail -->|"Nhấn Xem trên QL Tài sản"| Assets
+    RoomDetail -->|"Quay lại danh mục phòng"| Rooms
