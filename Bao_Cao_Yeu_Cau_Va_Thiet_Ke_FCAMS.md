@@ -185,10 +185,10 @@ flowchart TD
     Rooms --> AddRoom
     Rooms --> EditRoom
     Rooms --> DeleteRoom
-    Rooms -->|Nhấn [Xem chi tiết]| RoomDetail
+    Rooms -->|"Nhấn [Xem chi tiết]"| RoomDetail
 
-    RoomDetail -->|Nhấn [Xem trên QL Tài sản]| Assets
-    RoomDetail -->|Quay lại danh mục phòng| Rooms
+    RoomDetail -->|"Nhấn [Xem trên QL Tài sản]"| Assets
+    RoomDetail -->|"Quay lại danh mục phòng"| Rooms
 ```
 
 ---
