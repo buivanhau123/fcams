@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý Phòng học (Room Management) - F-CAMS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?v=20261025a">
 </head>
 <body>
     <div class="container-fluid px-0">

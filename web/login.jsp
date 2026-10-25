@@ -7,11 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Page - F-CAMS Simple</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?v=20261025a">
 </head>
 <body>
     <div class="container-fluid px-0">
-        <h1>Login Page</h1>
+        <div class="login-brand"><span class="brand-mark">F</span><div class="login-brand-text"><b>F-CAMS</b><small>Quản lý tài sản phòng học - FPT University</small></div></div>
+        <h1>Đăng nhập</h1>
 
         <c:if test="${not empty errorMsg}">
             <div class="alert-box" style="max-width: 500px; font-weight: bold;">

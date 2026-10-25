@@ -4,18 +4,22 @@
 
 <div class="header-bar">
     <div class="header-top-row">
-        <div class="welcome-msg">
-            Xin chào, <b><c:out value="${sessionScope.currentUser.fullName}"/></b> (<fcams:roleName role="${sessionScope.currentUser.role}"/>)
-        </div>
-        <div class="header-logout">
-            <a href="${pageContext.request.contextPath}/logout" class="logout-link">Đăng xuất</a>
+        <a class="brand" href="${pageContext.request.contextPath}/dashboard">
+            <span class="brand-mark">F</span>
+            <span class="brand-text"><b>F-CAMS</b><small>Quản lý tài sản phòng học</small></span>
+        </a>
+        <div class="header-user">
+            <div class="welcome-msg">
+                Xin chào, <b><c:out value="${sessionScope.currentUser.fullName}"/></b> (<fcams:roleName role="${sessionScope.currentUser.role}"/>)
+            </div>
+            <div class="header-logout">
+                <a href="${pageContext.request.contextPath}/logout" class="logout-link">Đăng xuất</a>
+            </div>
         </div>
     </div>
     <div class="nav-links">
         <a href="${pageContext.request.contextPath}/dashboard" class="${activeTab == 'dashboard' ? 'active' : ''}">Home</a>
-        <span>|</span>
         <a href="${pageContext.request.contextPath}/assets" class="${activeTab == 'assets' ? 'active' : ''}">Tài sản</a>
-        <span>|</span>
         <a href="${pageContext.request.contextPath}/rooms" class="${activeTab == 'rooms' ? 'active' : ''}">Phòng học</a>
     </div>
 </div>

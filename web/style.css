@@ -1,283 +1,656 @@
-/* ===== CSS Phong cách HTML/JSP đen trắng đơn giản kết hợp Responsive Bootstrap 5 (Tiêu chí 1.4 & 1.7) ===== */
-body {
-  font-family: Arial, Tahoma, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 15px 30px;
-  background-color: #ffffff;
-  color: #000000;
+/* ==========================================================================
+   F-CAMS (FPT Classroom Asset Management System)
+   Design System: FPT Education Brand Identity (Orange #F26F21 & Navy #1A365D)
+   Typography: Inter / Be Vietnam Pro / Segoe UI / System Sans-serif
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* FPT Brand Identity Colors */
+  --fpt-orange: #f26f21;
+  --fpt-orange-hover: #d95810;
+  --fpt-orange-light: #fff5ed;
+  --fpt-orange-border: #ffd8bf;
+  --fpt-navy: #0b1f3a;
+  --fpt-navy-light: #163259;
+  --fpt-blue-accent: #0070ba;
+
+  /* Neutral Surface & Backgrounds */
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+
+  /* Status Colors */
+  --badge-good-bg: #ecfdf5;
+  --badge-good-text: #047857;
+  --badge-good-border: #a7f3d0;
+  
+  --badge-warning-bg: #fffbeb;
+  --badge-warning-text: #b45309;
+  --badge-warning-border: #fde68a;
+
+  --badge-danger-bg: #fef2f2;
+  --badge-danger-text: #b91c1c;
+  --badge-danger-border: #fecaca;
+
+  /* Layout geometry */
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
 }
 
-/* Thanh điều hướng Menu trên cùng */
+/* Base Reset & Typography */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 14.5px;
+  line-height: 1.6;
+  margin: 0 !important;
+  padding: 24px 32px !important;
+  background-color: var(--bg-main) !important;
+  color: var(--text-main) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--fpt-orange);
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+a:hover {
+  color: var(--fpt-orange-hover);
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Header Bar & FPT Navigation
+   ========================================================================== */
 .header-bar {
-  border-bottom: 2px solid #000000;
-  padding-bottom: 8px;
-  margin-bottom: 15px;
+  background: var(--card-bg) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-top: 4px solid var(--fpt-orange) !important;
+  padding: 18px 24px !important;
+  margin-bottom: 24px !important;
 }
 
 .header-top-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 14px !important;
 }
 
 .welcome-msg {
-  color: #000000;
-  font-size: 14px;
-  font-weight: bold;
-  margin-bottom: 0;
+  font-size: 15px !important;
+  color: var(--text-main) !important;
+  font-weight: 500 !important;
+}
+
+.welcome-msg b {
+  color: var(--fpt-navy) !important;
+  font-weight: 700 !important;
 }
 
 .header-logout .logout-link {
-  color: #b00000;
-  font-size: 13px;
-  font-weight: bold;
-  text-decoration: underline;
+  color: #dc2626 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 6px 14px !important;
+  border-radius: 9999px !important;
+  background-color: #fef2f2 !important;
+  border: 1px solid #fee2e2 !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  transition: all 0.15s ease !important;
 }
 
 .header-logout .logout-link:hover {
-  color: #000000;
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+  text-decoration: none !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25) !important;
 }
 
 .nav-links {
-  background-color: #f2f2f2;
-  padding: 6px 10px;
-  border: 1px solid #000000;
-  margin-bottom: 15px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #f1f5f9 !important;
+  padding: 6px !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border-subtle) !important;
+  margin: 0 !important;
+}
+
+.nav-links span {
+  display: none !important;
 }
 
 .nav-links a {
-  color: #0000ee;
-  text-decoration: underline;
-}
-
-.nav-links a:visited {
-  color: #551a8b;
+  padding: 8px 20px !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-muted) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  transition: all 0.15s ease !important;
 }
 
 .nav-links a:hover {
-  color: #000000;
+  color: var(--fpt-orange) !important;
+  background: #ffffff !important;
 }
 
-.nav-links a.active {
-  color: #000000;
-  font-weight: bold;
-  text-decoration: none;
+.nav-links a.active,
+.nav-links a.active:visited {
+  background: var(--fpt-orange) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(242, 111, 33, 0.3) !important;
 }
 
-/* Tiêu đề trang */
-h1, h2, h3 {
-  font-family: 'Times New Roman', Times, serif;
-  margin-top: 5px;
-  margin-bottom: 10px;
-  color: #000000;
-  font-weight: bold;
-}
-
+/* ==========================================================================
+   Typography & Page Titles
+   ========================================================================== */
 h1 {
-  font-size: 22px;
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  color: var(--fpt-navy) !important;
+  letter-spacing: -0.02em !important;
+  margin: 8px 0 20px !important;
 }
 
 h2 {
-  font-size: 17px;
-  border-bottom: 1px solid #000000;
-  padding-bottom: 3px;
-  margin-top: 20px;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--fpt-navy) !important;
+  letter-spacing: -0.01em !important;
+  margin: 28px 0 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
 }
 
-h3 {
-  font-size: 15px;
+h2::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 4px !important;
+  height: 20px !important;
+  background: var(--fpt-orange) !important;
+  border-radius: 2px !important;
 }
 
-/* Bảng dữ liệu phong cách HTML trắng đen cổ điển */
-table.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid #000000;
-  margin-top: 8px;
-  margin-bottom: 15px;
-  background-color: #ffffff;
+/* ==========================================================================
+   Dashboard KPI Cards
+   ========================================================================== */
+.alert-box {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 20px 24px !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  color: var(--text-main) !important;
 }
 
-table.data-table th, table.data-table td {
-  border: 1px solid #000000;
-  padding: 5px 8px;
-  text-align: left;
-  color: #000000;
-  vertical-align: middle;
+/* alert-box inside the dashboard KPI grid */
+.col-md-4 .alert-box {
+  border-left: 4px solid var(--fpt-orange) !important;
+  position: relative !important;
+  overflow: hidden !important;
 }
 
-table.data-table th {
-  background-color: #e6e6e6;
-  font-weight: bold;
+.col-md-4:nth-child(2) .alert-box {
+  border-left-color: var(--fpt-navy) !important;
 }
 
-/* Biểu mẫu và ô nhập liệu */
+.col-md-4:nth-child(3) .alert-box {
+  border-left-color: #059669 !important;
+}
+
+.col-md-4 .alert-box:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.col-md-4 .alert-box div:first-child {
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.col-md-4 .alert-box div:nth-child(2) {
+  color: var(--fpt-navy) !important;
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+}
+
+.col-md-4 .alert-box div:last-child {
+  color: var(--text-subtle) !important;
+  font-size: 13px !important;
+}
+
+/* ==========================================================================
+   Filter Boxes & Form Fieldsets
+   ========================================================================== */
+.filter-box,
 fieldset {
-  border: 1px solid #000000;
-  padding: 12px 16px;
-  margin-bottom: 15px;
-  background-color: #ffffff;
-  max-width: 780px;
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: 18px 24px !important;
+  margin-bottom: 20px !important;
 }
 
 legend {
-  float: none;
-  width: auto;
-  font-size: 14px;
-  font-weight: bold;
-  padding: 0 6px;
-  margin-bottom: 4px;
-  color: #000000;
+  float: none !important;
+  width: auto !important;
+  padding: 0 10px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--fpt-orange) !important;
+  margin-bottom: 12px !important;
 }
 
 .form-group {
-  margin-bottom: 10px;
+  margin-bottom: 14px !important;
 }
 
 .form-group label {
-  display: inline-block;
-  width: 185px;
-  font-weight: bold;
-  color: #000000;
+  display: inline-block !important;
+  width: 190px !important;
+  font-weight: 600 !important;
+  color: var(--text-main) !important;
 }
 
-input[type="text"], input[type="password"], input[type="number"], select, textarea {
-  padding: 3px 6px;
-  border: 1px solid #000000;
-  font-family: Arial, sans-serif;
-  font-size: 13px;
-  background-color: #ffffff;
-  color: #000000;
+/* Inputs, Selects, Buttons */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  padding: 8px 14px !important;
+  font-size: 14px !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  background-color: #ffffff !important;
+  color: var(--text-main) !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
 }
 
-button, input[type="submit"], input[type="button"], input[type="reset"], .btn-classic {
-  padding: 3px 10px;
-  background-color: #f0f0f0;
-  border: 1px solid #000000;
-  font-size: 13px;
-  color: #000000;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--fpt-orange) !important;
+  box-shadow: 0 0 0 3px rgba(242, 111, 33, 0.18) !important;
 }
 
-button:hover, input[type="submit"]:hover, input[type="button"]:hover, input[type="reset"]:hover, .btn-classic:hover {
-  background-color: #d9d9d9;
-  color: #000000;
+button,
+input[type="submit"],
+.btn-classic {
+  background: var(--fpt-orange) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--fpt-orange) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 8px 18px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  display: inline-block !important;
+  transition: all 0.15s ease !important;
 }
 
-/* Bộ lọc phòng */
-.filter-box {
-  background-color: #f9f9f9;
-  border: 1px solid #000000;
-  padding: 8px 10px;
-  margin-bottom: 12px;
+button:hover,
+input[type="submit"]:hover,
+.btn-classic:hover {
+  background: var(--fpt-orange-hover) !important;
+  border-color: var(--fpt-orange-hover) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(242, 111, 33, 0.3) !important;
+  transform: translateY(-1px) !important;
+  text-decoration: none !important;
 }
 
-/* Sơ đồ bàn ghế tối giản hoàn toàn trắng đen */
+input[type="reset"] {
+  background: #f1f5f9 !important;
+  color: var(--text-muted) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 8px 16px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+input[type="reset"]:hover {
+  background: #e2e8f0 !important;
+  color: var(--text-main) !important;
+}
+
+/* ==========================================================================
+   Data Tables
+   ========================================================================== */
+.table-responsive {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid var(--border-subtle) !important;
+  background: var(--card-bg) !important;
+  margin-bottom: 20px !important;
+  overflow: hidden !important;
+}
+
+table.data-table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  background: var(--card-bg) !important;
+}
+
+table.data-table th,
+table.data-table td {
+  border: none !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  padding: 12px 16px !important;
+  vertical-align: middle !important;
+  font-size: 14px !important;
+}
+
+table.data-table th {
+  background: #f8fafc !important;
+  color: var(--text-muted) !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  border-bottom: 2px solid var(--border-subtle) !important;
+}
+
+table.data-table tbody tr {
+  transition: background-color 0.12s ease !important;
+}
+
+table.data-table tbody tr:hover {
+  background-color: var(--fpt-orange-light) !important;
+}
+
+table.data-table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* ==========================================================================
+   Room Blueprint & Chair Grid
+   ========================================================================== */
 .room-blueprint-box {
-  border: 1px solid #000000;
-  background-color: #ffffff;
-  padding: 12px;
-  margin-bottom: 15px;
-  max-width: 780px;
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+  padding: 24px !important;
+  margin-bottom: 20px !important;
+  max-width: 820px !important;
 }
 
 .stage-bar {
-  text-align: center;
-  border: 1px solid #000000;
-  background-color: #f0f0f0;
-  padding: 5px;
-  font-weight: bold;
-  margin-bottom: 12px;
-  color: #000000;
+  background: linear-gradient(135deg, var(--fpt-navy), var(--fpt-navy-light)) !important;
+  color: #ffffff !important;
+  text-align: center !important;
+  padding: 10px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  border-radius: var(--radius-sm) !important;
+  border: none !important;
+  margin-bottom: 20px !important;
+  box-shadow: 0 2px 6px rgba(11, 31, 58, 0.2) !important;
 }
 
 .chairs-simple-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
-  margin-top: 8px;
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
 }
 
 .chair-box {
-  border: 1px solid #000000;
-  background-color: #ffffff;
-  text-align: center;
-  padding: 5px 2px;
-  font-size: 12px;
-  color: #000000;
-  display: block;
-  text-decoration: none;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 42px !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--badge-good-text) !important;
+  background-color: var(--badge-good-bg) !important;
+  border: 1px solid var(--badge-good-border) !important;
+  text-decoration: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.chair-box:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-sm) !important;
+  text-decoration: none !important;
 }
 
 .chair-box.missing {
-  border: 1px dashed #000000;
-  background-color: #ffffff;
-  color: #000000;
-  font-weight: bold;
-  cursor: pointer;
+  background-color: var(--badge-danger-bg) !important;
+  border: 1.5px dashed var(--badge-danger-border) !important;
+  color: var(--badge-danger-text) !important;
+  font-weight: 700 !important;
 }
 
 .chair-box.missing:hover {
-  background-color: #f0f0f0;
+  background-color: #fee2e2 !important;
 }
 
 .chair-box.extra {
-  border: 2px solid #000000;
-  background-color: #ffffff;
-  color: #000000;
+  background-color: var(--badge-warning-bg) !important;
+  border: 1.5px solid var(--badge-warning-border) !important;
+  color: var(--badge-warning-text) !important;
 }
 
-/* Hộp thông báo khung đen chữ đen */
-.alert-box {
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  border: 1px solid #000000;
-  background-color: #ffffff;
-  color: #000000;
-}
-
-/* Chân trang */
+/* ==========================================================================
+   Footer
+   ========================================================================== */
 .footer-text {
-  margin-top: 30px;
-  border-top: 1px solid #000000;
-  padding-top: 8px;
-  font-size: 12px;
-  color: #000000;
+  margin-top: 40px !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  padding-top: 20px !important;
+  font-size: 13px !important;
+  color: var(--text-muted) !important;
+  text-align: center !important;
+  line-height: 1.7 !important;
 }
 
-/* Thiết kế Responsive cho màn hình Tablet & Mobile (Tiêu chí 1.7) */
+/* ==========================================================================
+   Login Specific Clean Look
+   ========================================================================== */
+body:has(form[action*="login"]) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 100vh !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%) !important;
+}
+
+body:has(form[action*="login"]) .container-fluid {
+  background: #ffffff !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-top: 5px solid var(--fpt-orange) !important;
+  padding: 40px 36px !important;
+  max-width: 440px !important;
+  width: 100% !important;
+  margin: auto !important;
+}
+
+body:has(form[action*="login"]) h1 {
+  text-align: center !important;
+  font-size: 24px !important;
+  color: var(--fpt-navy) !important;
+  margin-bottom: 24px !important;
+}
+
+body:has(form[action*="login"]) form input[type="text"],
+body:has(form[action*="login"]) form input[type="password"] {
+  width: 100% !important;
+  margin-bottom: 14px !important;
+  padding: 10px 14px !important;
+}
+
+body:has(form[action*="login"]) form input[type="submit"] {
+  width: 100% !important;
+  padding: 10px !important;
+  font-size: 14.5px !important;
+  margin-bottom: 8px !important;
+}
+
+body:has(form[action*="login"]) form input[type="reset"] {
+  width: 100% !important;
+  padding: 8px !important;
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
 @media (max-width: 992px) {
   body {
-    margin: 10px 15px;
+    padding: 16px 20px !important;
   }
   .chairs-simple-grid {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, 1fr) !important;
   }
 }
 
 @media (max-width: 576px) {
   body {
-    margin: 8px 10px;
+    padding: 12px !important;
   }
-  .form-group label {
-    display: block;
-    width: 100%;
-    margin-bottom: 4px;
+  .header-top-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  .nav-links {
+    flex-wrap: wrap !important;
   }
   .chairs-simple-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr) !important;
   }
-  input[type="text"], input[type="password"], select {
+  .form-group label {
+    display: block !important;
     width: 100% !important;
-    max-width: 100%;
+    margin-bottom: 4px !important;
+  }
+  input[type="text"],
+  input[type="password"],
+  select {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
 
+/* ==========================================================================
+   LAYOUT REFINEMENTS (page shell, header, filters, forms, tables, footer)
+   ========================================================================== */
+body { padding: 20px 24px !important; }
+
+/* Page shell: centered column instead of edge-to-edge stretching */
+.container-fluid.px-0 { max-width: 1280px !important; margin: 0 auto !important; padding: 0 !important; }
+
+/* Header: brand left, user + logout right, nav underneath */
+.header-bar { padding: 14px 20px 12px !important; }
+.header-top-row { margin-bottom: 12px !important; gap: 16px !important; flex-wrap: wrap !important; }
+.brand { display: inline-flex !important; align-items: center !important; gap: 12px !important; text-decoration: none !important; color: var(--fpt-navy) !important; }
+.brand:hover { text-decoration: none !important; }
+.brand-mark { width: 38px; height: 38px; border-radius: 10px; background: var(--fpt-orange); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; flex: none; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-text b { font-size: 18px; font-weight: 800; color: var(--fpt-navy); letter-spacing: -0.01em; }
+.brand-text small { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+.header-user { display: flex !important; align-items: center !important; gap: 14px !important; margin-left: auto !important; }
+.welcome-msg { font-size: 14px !important; text-align: right !important; }
+.nav-links { width: fit-content !important; max-width: 100% !important; }
+
+/* Page title and breadcrumb spacing */
+h1 { margin: 4px 0 18px !important; }
+h2 { margin: 26px 0 14px !important; }
+.container-fluid > div[style*="margin-bottom: 12px"],
+.container-fluid > div[style*="margin-bottom: 10px"] { color: var(--text-muted); margin-bottom: 14px !important; }
+
+/* Cards, tables and info boxes fill the same column width */
+.table-responsive { max-width: none !important; overflow-x: auto !important; }
+.alert-box[style*="max-width"], fieldset, .room-blueprint-box { max-width: none !important; }
+.row > [class*="col-"] > .alert-box { height: 100%; }
+table.data-table { min-width: 640px; }
+table.data-table td small { color: var(--text-muted); }
+
+/* Filter bar: one tidy row, labels beside controls */
+.filter-box form { display: flex !important; flex-wrap: wrap !important; align-items: center !important; gap: 12px 20px !important; margin: 0 !important; }
+.filter-box .col-auto { display: flex !important; align-items: center !important; gap: 8px !important; width: auto !important; padding: 0 !important; margin: 0 !important; }
+.filter-box label { margin: 0 !important; white-space: nowrap; }
+.filter-box input[type="text"] { min-width: 220px; }
+
+/* Forms: label column + control column */
+fieldset .form-group { display: grid !important; grid-template-columns: 200px minmax(0, 1fr); align-items: center; gap: 6px 16px; }
+fieldset .form-group label { width: auto !important; }
+fieldset .form-group input[type="text"], fieldset .form-group input[type="number"], fieldset .form-group input[type="date"], fieldset .form-group select, fieldset .form-group textarea { max-width: 420px; }
+
+/* Footer */
+.footer-text button { background: none !important; border: none !important; color: var(--fpt-orange) !important; box-shadow: none !important; padding: 0 !important; font-weight: 600 !important; text-decoration: underline !important; transform: none !important; }
+.footer-text form { margin-top: 6px !important; }
+
+/* Login card brand */
+.login-brand { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 18px; }
+.login-brand-text { display: flex; flex-direction: column; line-height: 1.2; text-align: left; }
+.login-brand-text b { font-size: 20px; color: var(--fpt-navy); font-weight: 800; }
+.login-brand-text small { font-size: 12px; color: var(--text-muted); }
+body:has(form[action*="login"]) h1 { font-size: 20px !important; margin-bottom: 20px !important; }
+body:has(form[action*="login"]) form > div { margin-bottom: 14px !important; }
+body:has(form[action*="login"]) form label { display: block !important; width: 100% !important; margin-bottom: 6px !important; font-weight: 600 !important; }
+body:has(form[action*="login"]) form > div:last-of-type { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+body:has(form[action*="login"]) form input[type="text"], body:has(form[action*="login"]) form input[type="password"] { margin-bottom: 0 !important; }
+
+@media (max-width: 992px) {
+  body { padding: 14px 16px !important; }
+  .header-user { margin-left: 0 !important; width: 100% !important; justify-content: space-between !important; }
+  fieldset .form-group { grid-template-columns: 1fr; }
+}
+@media (max-width: 576px) {
+  .nav-links { width: 100% !important; }
+  .nav-links a { flex: 1 1 auto; text-align: center; }
+  .filter-box .col-auto { width: 100% !important; flex-wrap: wrap; }
+  .filter-box input[type="text"], .filter-box select { flex: 1 1 100%; min-width: 0; }
+}
