@@ -78,10 +78,9 @@ Cơ sở dữ liệu gồm 4 bảng chuẩn hóa:
 | :--- | :--- | :--- | :--- |
 | `admin` | `123` | **Quản trị viên (Admin)** | Toàn quyền thêm, sửa, xóa tài sản & phòng học |
 | `it_beta` | `123` | **Nhân viên (Staff)** | Xem, tìm kiếm, thêm/sửa tài sản; Bị chặn xóa tài sản và sửa/xóa phòng học |
-| `hungnq` | `123` | **Nhân viên (Staff)** | Xem, tìm kiếm tài sản và phòng học |
+
 
 ---
-
 ## 📂 Cấu trúc Thư mục Nguồn
 ```text
 FCAMS-Simple/
