@@ -11,8 +11,8 @@ import model.Asset;
 import model.DashboardStats;
 
 /**
- * Data Access Object quản lý toàn diện Tài sản phòng học (Asset Management - CRUD)
- * và cung cấp số liệu thống kê cho Bảng điều khiển (Dashboard).
+ * Data Access Object quản lý toàn diện Tài sản phòng học (Asset Management - CRUD),
+ * Báo cáo hỏng hóc cho Giảng viên (Lecturer) và cung cấp số liệu thống kê cho Dashboard.
  */
 public class AssetDAO extends DBContext {
 
@@ -55,8 +55,15 @@ public class AssetDAO extends DBContext {
             params.add(category.trim());
         }
         if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
-            sql.append("AND status = ? ");
-            params.add(status.trim());
+            String st = status.trim().toUpperCase();
+            if ("FAULTY".equals(st) || "BROKEN".equals(st)) {
+                sql.append("AND status IN ('FAULTY', 'BROKEN') ");
+            } else if ("REPAIRING".equals(st) || "MAINTENANCE".equals(st)) {
+                sql.append("AND status IN ('REPAIRING', 'MAINTENANCE') ");
+            } else {
+                sql.append("AND status = ? ");
+                params.add(st);
+            }
         }
         if (keyword != null && !keyword.isBlank()) {
             sql.append("AND (code LIKE ? OR name LIKE ? OR serial_number LIKE ?) ");
@@ -158,7 +165,11 @@ public class AssetDAO extends DBContext {
             ps.setString(7, a.getRoomId().trim());
             ps.setString(8, a.getStatus() != null ? a.getStatus().trim() : "ACTIVE");
             ps.setNString(9, a.getNote() != null ? a.getNote().trim() : "");
-            return ps.executeUpdate() > 0;
+            boolean ok = ps.executeUpdate() > 0;
+            if (ok) {
+                syncRoomAssetStatus(a.getCode(), a.getRoomId(), a.getStatus(), a.getNote());
+            }
+            return ok;
         } catch (SQLException ex) {
             Logger.getLogger(AssetDAO.class.getName()).log(Level.SEVERE, null, ex);
             return false;
@@ -184,10 +195,71 @@ public class AssetDAO extends DBContext {
             ps.setString(7, a.getStatus());
             ps.setNString(8, a.getNote() != null ? a.getNote().trim() : "");
             ps.setString(9, a.getCode().trim());
-            return ps.executeUpdate() > 0;
+            boolean ok = ps.executeUpdate() > 0;
+            if (ok) {
+                syncRoomAssetStatus(a.getCode(), a.getRoomId(), a.getStatus(), a.getNote());
+            }
+            return ok;
         } catch (SQLException ex) {
             Logger.getLogger(AssetDAO.class.getName()).log(Level.SEVERE, null, ex);
             return false;
+        }
+    }
+
+    /**
+     * UPDATE: Giảng viên / Staff báo cáo đồ hỏng hóc trong phòng học
+     */
+    public boolean reportAssetDamage(String assetCode, String damageDescription, String reporterName) {
+        if (connection == null || assetCode == null) {
+            return false;
+        }
+        Asset current = getAssetByCode(assetCode);
+        if (current == null) {
+            return false;
+        }
+        String formattedNote = "[Báo hỏng bởi " + reporterName + "]: " + damageDescription.trim();
+        String sql = "UPDATE dbo.assets SET status = 'FAULTY', note = ? WHERE code = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setNString(1, formattedNote);
+            ps.setString(2, assetCode.trim());
+            boolean ok = ps.executeUpdate() > 0;
+            if (ok) {
+                syncRoomAssetStatus(assetCode.trim(), current.getRoomId(), "FAULTY", formattedNote);
+            }
+            return ok;
+        } catch (SQLException ex) {
+            Logger.getLogger(AssetDAO.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        }
+    }
+
+    private void syncRoomAssetStatus(String assetCode, String roomId, String status, String note) {
+        if (connection == null || assetCode == null || roomId == null) {
+            return;
+        }
+        String upper = assetCode.trim().toUpperCase();
+        String key = null;
+        if (upper.endsWith("-PJ")) {
+            key = "projector";
+        } else if (upper.endsWith("-AC1")) {
+            key = "acLeft";
+        } else if (upper.endsWith("-AC2")) {
+            key = "acRight";
+        } else if (upper.endsWith("-TV")) {
+            key = "tv";
+        }
+        if (key == null) {
+            return;
+        }
+        String sql = "UPDATE dbo.room_assets SET status = ?, note = ? WHERE room_id = ? AND asset_key = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, status != null ? status : "ACTIVE");
+            ps.setNString(2, note != null ? note : "");
+            ps.setString(3, roomId.trim());
+            ps.setString(4, key);
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            Logger.getLogger(AssetDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -290,6 +362,12 @@ public class AssetDAO extends DBContext {
     }
 
     private Asset mapAsset(ResultSet rs) throws SQLException {
+        String rawStatus = rs.getString("status");
+        if ("BROKEN".equalsIgnoreCase(rawStatus)) {
+            rawStatus = "FAULTY";
+        } else if ("MAINTENANCE".equalsIgnoreCase(rawStatus)) {
+            rawStatus = "REPAIRING";
+        }
         Asset a = new Asset(
             rs.getString("code"),
             rs.getNString("name"),
@@ -298,7 +376,7 @@ public class AssetDAO extends DBContext {
             rs.getDate("handover_date") != null ? rs.getDate("handover_date").toString() : "",
             rs.getDouble("price"),
             rs.getString("room_id"),
-            rs.getString("status"),
+            rawStatus,
             rs.getNString("note")
         );
         if (rs.getTimestamp("created_at") != null) {
@@ -307,4 +385,3 @@ public class AssetDAO extends DBContext {
         return a;
     }
 }
-

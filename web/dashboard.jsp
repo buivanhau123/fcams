@@ -72,7 +72,7 @@
                         <td><b>Hỏng hóc / Cần thay thế (FAULTY)</b></td>
                         <td style="text-align: center;"><b>${stats.faultyCount}</b></td>
                         <td style="text-align: center;">${stats.faultyRate}%</td>
-                        <td>Gặp sự cố kỹ thuật, cần cán bộ kỹ thuật kiểm tra gấp</td>
+                        <td>Gặp sự cố kỹ thuật, cần cán bộ quản lý (Staff) kiểm tra gấp</td>
                     </tr>
                 </tbody>
             </table>
@@ -118,6 +118,10 @@
                 </div>
                 <div style="font-size: 13px;">
                     <a href="${pageContext.request.contextPath}/assets">[&raquo; Xem tất cả tài sản]</a>
+                    <c:if test="${sessionScope.currentUser.staffOrAdmin}">
+                        &nbsp;|&nbsp;
+                        <a href="${pageContext.request.contextPath}/history">[&raquo; Xem Nhật ký Lịch sử thay đổi]</a>
+                    </c:if>
                 </div>
             </div>
 
@@ -159,7 +163,11 @@
                     </table>
                 </div>
                 <div style="font-size: 13px;">
-                    <a href="${pageContext.request.contextPath}/assets?status=BROKEN">[&raquo; Xem toàn bộ danh sách tài sản gặp sự cố trên trang Quản lý Tài sản]</a>
+                    <a href="${pageContext.request.contextPath}/assets?status=FAULTY">[&raquo; Xem toàn bộ danh sách tài sản hỏng hóc]</a>
+                    <c:if test="${sessionScope.currentUser.staffOrAdmin}">
+                        &nbsp;|&nbsp;
+                        <a href="${pageContext.request.contextPath}/history?actionType=REPORT_DAMAGE">[&raquo; Xem lịch sử báo hỏng của Giảng viên]</a>
+                    </c:if>
                 </div>
             </div>
         </div>
@@ -168,4 +176,3 @@
     </div>
 </body>
 </html>
-

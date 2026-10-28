@@ -21,6 +21,9 @@
         <a href="${pageContext.request.contextPath}/dashboard" class="${activeTab == 'dashboard' ? 'active' : ''}">Home</a>
         <a href="${pageContext.request.contextPath}/assets" class="${activeTab == 'assets' ? 'active' : ''}">Tài sản</a>
         <a href="${pageContext.request.contextPath}/rooms" class="${activeTab == 'rooms' ? 'active' : ''}">Phòng học</a>
+        <c:if test="${sessionScope.currentUser.staffOrAdmin}">
+            <a href="${pageContext.request.contextPath}/history" class="${activeTab == 'history' ? 'active' : ''}">Lịch sử</a>
+        </c:if>
     </div>
 </div>
 

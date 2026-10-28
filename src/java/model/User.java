@@ -5,7 +5,7 @@ import java.io.Serializable;
 /**
  * Tác nhân người dùng của hệ thống (Tiêu chí 1.1):
  * - LECTURER (Giảng viên)
- * - IT_STAFF (Cán bộ IT)
+ * - STAFF (Cán bộ Quản lý)
  * - ADMIN (Quản trị viên Hệ thống)
  */
 public class User implements Serializable {
@@ -71,7 +71,11 @@ public class User implements Serializable {
     }
 
     public boolean isStaff() {
-        return "IT_STAFF".equalsIgnoreCase(role) || "STAFF".equalsIgnoreCase(role);
+        return "STAFF".equalsIgnoreCase(role);
+    }
+
+    public boolean isLecturer() {
+        return "LECTURER".equalsIgnoreCase(role);
     }
 
     public boolean isStaffOrAdmin() {
@@ -88,4 +92,3 @@ public class User implements Serializable {
         return "Giảng viên (Lecturer)";
     }
 }
-

@@ -19,13 +19,12 @@ public class AssetStatusTag extends SimpleTagSupport {
     @Override
     public void doTag() throws JspException, IOException {
         JspWriter out = getJspContext().getOut();
-        if ("FAULTY".equalsIgnoreCase(status)) {
-            out.print("<b>Hỏng</b>");
-        } else if ("REPAIRING".equalsIgnoreCase(status)) {
-            out.print("<i>Đang sửa</i>");
+        if ("FAULTY".equalsIgnoreCase(status) || "BROKEN".equalsIgnoreCase(status)) {
+            out.print("<b>Hỏng hóc</b>");
+        } else if ("REPAIRING".equalsIgnoreCase(status) || "MAINTENANCE".equalsIgnoreCase(status)) {
+            out.print("<i>Đang bảo trì</i>");
         } else {
             out.print("Tốt");
         }
     }
 }
-

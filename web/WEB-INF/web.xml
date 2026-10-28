@@ -20,7 +20,7 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
-    <!-- Servlets cho 4 Tính năng Trọng tâm -->
+    <!-- Servlets cho các Tính năng Trọng tâm -->
     <!-- 1. Quản lý Đăng nhập & Đăng xuất -->
     <servlet>
         <servlet-name>LoginServlet</servlet-name>
@@ -50,7 +50,7 @@
         <url-pattern>/dashboard</url-pattern>
     </servlet-mapping>
 
-    <!-- 3. Quản lý Tài sản (Asset Management - CRUD) -->
+    <!-- 3. Quản lý Tài sản (Asset Management - CRUD & Báo cáo hỏng hóc) -->
     <servlet>
         <servlet-name>AssetServlet</servlet-name>
         <servlet-class>controller.AssetServlet</servlet-class>
@@ -77,6 +77,16 @@
     <servlet-mapping>
         <servlet-name>RoomDetailServlet</servlet-name>
         <url-pattern>/room-detail</url-pattern>
+    </servlet-mapping>
+
+    <!-- 5. Nhật ký Lịch sử thay đổi (History - Dành cho Admin & Staff) -->
+    <servlet>
+        <servlet-name>HistoryServlet</servlet-name>
+        <servlet-class>controller.HistoryServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>HistoryServlet</servlet-name>
+        <url-pattern>/history</url-pattern>
     </servlet-mapping>
 
     <!-- JSP & Custom Tag Configuration -->

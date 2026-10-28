@@ -1,10 +1,7 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- F-CAMS SIMPLE: HỆ THỐNG QUẢN LÝ TÀI SẢN PHÒNG HỌC (PRJ301 - JAVA WEB)
 -- CSDL: Microsoft SQL Server (T-SQL) - Database: FCAMS_DB
 -- ============================================================================
-
-USE master;
-GO
 
 IF DB_ID('FCAMS_DB') IS NULL
 BEGIN
@@ -17,6 +14,7 @@ GO
 
 -- Xóa các bảng và stored procedure cũ nếu tồn tại
 IF OBJECT_ID('dbo.sp_ResetFcamsData', 'P') IS NOT NULL DROP PROCEDURE dbo.sp_ResetFcamsData;
+IF OBJECT_ID('dbo.change_history', 'U') IS NOT NULL DROP TABLE dbo.change_history;
 IF OBJECT_ID('dbo.assets', 'U') IS NOT NULL DROP TABLE dbo.assets;
 IF OBJECT_ID('dbo.tickets', 'U') IS NOT NULL DROP TABLE dbo.tickets;
 IF OBJECT_ID('dbo.borrows', 'U') IS NOT NULL DROP TABLE dbo.borrows;
@@ -27,7 +25,7 @@ IF OBJECT_ID('dbo.users', 'U') IS NOT NULL DROP TABLE dbo.users;
 GO
 
 -- ============================================================================
--- 1. BẢNG USERS (Xác thực & Phân quyền: ADMIN, STAFF / IT_STAFF)
+-- 1. BẢNG USERS (Xác thực & Phân quyền: ADMIN, STAFF, LECTURER)
 -- ============================================================================
 CREATE TABLE dbo.users (
     username VARCHAR(50) NOT NULL PRIMARY KEY,
@@ -35,7 +33,7 @@ CREATE TABLE dbo.users (
     full_name NVARCHAR(100) NOT NULL,
     role VARCHAR(20) NOT NULL,
     description NVARCHAR(500) NULL,
-    CONSTRAINT CK_users_role CHECK (role IN ('ADMIN', 'STAFF', 'IT_STAFF', 'LECTURER')),
+    CONSTRAINT CK_users_role CHECK (role IN ('ADMIN', 'STAFF', 'LECTURER')),
     CONSTRAINT CK_users_username_len CHECK (LEN(LTRIM(RTRIM(username))) >= 3)
 );
 GO
@@ -95,6 +93,26 @@ CREATE TABLE dbo.room_assets (
 GO
 
 -- ============================================================================
+-- 5. BẢNG CHANGE_HISTORY (Lịch sử thay đổi & Báo cáo hỏng hóc thiết bị)
+-- ============================================================================
+CREATE TABLE dbo.change_history (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    action_type VARCHAR(30) NOT NULL,
+    target_type VARCHAR(20) NOT NULL DEFAULT 'ASSET',
+    target_code VARCHAR(50) NOT NULL,
+    target_name NVARCHAR(150) NOT NULL,
+    room_id VARCHAR(20) NULL,
+    old_value NVARCHAR(300) NULL,
+    new_value NVARCHAR(300) NULL,
+    description NVARCHAR(500) NOT NULL,
+    performed_by VARCHAR(50) NOT NULL,
+    performer_name NVARCHAR(100) NOT NULL,
+    performer_role VARCHAR(20) NOT NULL,
+    created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+);
+GO
+
+-- ============================================================================
 -- STORED PROCEDURE KHỞI TẠO & ĐẶT LẠI DỮ LIỆU HOÀN CHỈNH (sp_ResetFcamsData)
 -- ============================================================================
 CREATE PROCEDURE dbo.sp_ResetFcamsData
@@ -102,16 +120,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DELETE FROM dbo.change_history;
     DELETE FROM dbo.assets;
     DELETE FROM dbo.room_assets;
     DELETE FROM dbo.rooms;
     DELETE FROM dbo.users;
 
-    -- 1. NẠP USERS (Phân quyền Admin / Staff)
+    -- 1. NẠP USERS (Phân quyền ADMIN / STAFF / LECTURER)
     INSERT INTO dbo.users (username, password, full_name, role, description) VALUES
-    ('admin',   '123', N'Quản trị viên Hệ thống', 'ADMIN',    N'Quản trị viên (Admin): Toàn quyền Dashboard, Quản lý Tài sản (Xem, Thêm, Sửa, XÓA), Quản lý Phòng học (Xem, Thêm, Sửa, XÓA).'),
-    ('it_beta', '123', N'Trần Văn Tuấn (Cán bộ IT)', 'STAFF',   N'Cán bộ Quản lý (Staff): Dashboard, Quản lý Tài sản (Xem, Thêm, Sửa, Chuyển phòng), Quản lý Phòng học (Xem chi tiết). Bị hạn chế quyền Xóa/Sửa phòng.'),
-    ('hungnq',  '123', N'Thầy Nguyễn Quốc Hùng',    'STAFF',   N'Cán bộ Quản lý Phòng học & Thiết bị');
+    ('admin',   '123', N'Quản trị viên Hệ thống',       'ADMIN',    N'Quản trị viên (Admin): Toàn quyền Dashboard, Quản lý Tài sản (Xem, Thêm, Sửa, XÓA), Quản lý Phòng học (Xem, Thêm, Sửa, XÓA), Xem Lịch sử thay đổi.'),
+    ('it_beta', '123', N'Trần Văn Tuấn (Cán bộ Quản lý)', 'STAFF',  N'Cán bộ Quản lý (Staff): Dashboard, Quản lý Tài sản (Xem, Thêm, Sửa, Chuyển phòng, Xử lý báo hỏng), Quản lý Phòng học (Xem chi tiết), Xem Lịch sử thay đổi.'),
+    ('hungnq',  '123', N'Thầy Nguyễn Quốc Hùng',        'LECTURER', N'Giảng viên (Lecturer): Xem danh sách phòng học, xem tình trạng các đồ vật trong phòng và gửi báo cáo đồ hỏng hóc cho Cán bộ Quản lý (Staff).');
 
     -- 2. NẠP ROOMS (Danh mục các phòng học toàn trường)
     INSERT INTO dbo.rooms (id, building, floor, std_chairs, cur_chairs, purpose) VALUES
@@ -127,106 +146,106 @@ BEGIN
 
     -- 3. NẠP ROOM_ASSETS (Thiết bị phòng cơ bản)
     INSERT INTO dbo.room_assets (room_id, asset_key, asset_name, status, note) VALUES
-    ('BE-301', 'projector', N'Máy chiếu Sony Laser 4K',       'ACTIVE', N''),
-    ('BE-301', 'acLeft',    N'Điều hòa Daikin 18000BTU (Trái)', 'ACTIVE', N''),
-    ('BE-301', 'acRight',   N'Điều hòa Daikin 18000BTU (Phải)', 'ACTIVE', N''),
-    ('BE-301', 'tv',        N'Smart TV Samsung 65 inch',       'ACTIVE', N''),
+    ('BE-301', 'projector', N'Máy chiếu Sony Laser 4K',       'ACTIVE',    N''),
+    ('BE-301', 'acLeft',    N'Điều hòa Daikin 18000BTU (Trái)', 'ACTIVE',  N''),
+    ('BE-301', 'acRight',   N'Điều hòa Daikin 18000BTU (Phải)', 'ACTIVE',  N''),
+    ('BE-301', 'tv',        N'Smart TV Samsung 65 inch',       'ACTIVE',    N''),
 
-    ('BE-302', 'projector', N'Máy chiếu Panasonic PT-VMZ50',  'ACTIVE', N''),
-    ('BE-302', 'acLeft',    N'Điều hòa Daikin 18000BTU (Trái)', 'ACTIVE', N''),
-    ('BE-302', 'acRight',   N'Điều hòa Daikin 18000BTU (Phải)', 'ACTIVE', N''),
-    ('BE-302', 'tv',        N'Smart TV LG QNED 65 inch',       'ACTIVE', N''),
+    ('BE-302', 'projector', N'Máy chiếu Panasonic PT-VMZ50',  'ACTIVE',    N''),
+    ('BE-302', 'acLeft',    N'Điều hòa Daikin 18000BTU (Trái)', 'REPAIRING', N'Đang vệ sinh màng lọc và kiểm tra ga'),
+    ('BE-302', 'acRight',   N'Điều hòa Daikin 18000BTU (Phải)', 'ACTIVE',  N''),
+    ('BE-302', 'tv',        N'Smart TV LG QNED 65 inch',       'ACTIVE',    N''),
 
-    ('BE-303', 'projector', N'Máy chiếu Epson EB-2250U',      'ACTIVE', N''),
-    ('BE-303', 'acLeft',    N'Điều hòa Panasonic 24000BTU',    'ACTIVE', N''),
-    ('BE-303', 'acRight',   N'Điều hòa Panasonic 24000BTU',    'ACTIVE', N''),
-    ('BE-303', 'tv',        N'Smart TV Sony Bravia 75 inch',   'ACTIVE', N''),
+    ('BE-303', 'projector', N'Máy chiếu Epson EB-2250U',      'ACTIVE',    N''),
+    ('BE-303', 'acLeft',    N'Điều hòa Panasonic 24000BTU',    'ACTIVE',    N''),
+    ('BE-303', 'acRight',   N'Điều hòa Panasonic 24000BTU',    'ACTIVE',    N''),
+    ('BE-303', 'tv',        N'Smart TV Sony Bravia 75 inch',   'ACTIVE',    N''),
 
-    ('AL-101', 'projector', N'Máy chiếu ViewSonic Laser',     'ACTIVE', N''),
-    ('AL-101', 'acLeft',    N'Điều hòa Daikin Inverter',       'ACTIVE', N''),
-    ('AL-101', 'acRight',   N'Điều hòa Daikin Inverter',       'ACTIVE', N''),
-    ('AL-101', 'tv',        N'Smart TV Samsung 75 inch',       'ACTIVE', N''),
+    ('AL-101', 'projector', N'Máy chiếu ViewSonic Laser',     'ACTIVE',    N''),
+    ('AL-101', 'acLeft',    N'Điều hòa Daikin Inverter',       'ACTIVE',    N''),
+    ('AL-101', 'acRight',   N'Điều hòa Daikin Inverter',       'ACTIVE',    N''),
+    ('AL-101', 'tv',        N'Smart TV Samsung 75 inch',       'ACTIVE',    N''),
 
-    ('AL-102', 'projector', N'Máy chiếu BenQ 4K HDR',         'ACTIVE', N''),
-    ('AL-102', 'acLeft',    N'Điều hòa Daikin 24000BTU',       'ACTIVE', N''),
-    ('AL-102', 'acRight',   N'Điều hòa Daikin 24000BTU',       'ACTIVE', N''),
-    ('AL-102', 'tv',        N'Smart TV LG OLED 65 inch',       'ACTIVE', N''),
+    ('AL-102', 'projector', N'Máy chiếu BenQ 4K HDR',         'ACTIVE',    N''),
+    ('AL-102', 'acLeft',    N'Điều hòa Daikin 24000BTU',       'ACTIVE',    N''),
+    ('AL-102', 'acRight',   N'Điều hòa Daikin 24000BTU',       'ACTIVE',    N''),
+    ('AL-102', 'tv',        N'Smart TV LG OLED 65 inch',       'ACTIVE',    N''),
 
-    ('AL-201', 'projector', N'Máy chiếu Sony VPL-PHZ60',      'ACTIVE', N''),
-    ('AL-201', 'acLeft',    N'Điều hòa Panasonic Inverter',    'ACTIVE', N''),
-    ('AL-201', 'acRight',   N'Điều hòa Panasonic Inverter',    'ACTIVE', N''),
-    ('AL-201', 'tv',        N'Smart TV Samsung Crystal 65"',   'ACTIVE', N''),
+    ('AL-201', 'projector', N'Máy chiếu Sony VPL-PHZ60',      'ACTIVE',    N''),
+    ('AL-201', 'acLeft',    N'Điều hòa Panasonic Inverter',    'ACTIVE',    N''),
+    ('AL-201', 'acRight',   N'Điều hòa Panasonic Inverter',    'FAULTY',    N'Bị rò rỉ nước ngưng, đang chờ thay ống xả (GV Nguyễn Quốc Hùng báo hỏng)'),
+    ('AL-201', 'tv',        N'Smart TV Samsung Crystal 65"',   'ACTIVE',    N''),
 
-    ('DE-101', 'projector', N'Máy chiếu Epson Laser Full HD', 'ACTIVE', N''),
-    ('DE-101', 'acLeft',    N'Điều hòa Daikin 18000BTU',       'ACTIVE', N''),
-    ('DE-101', 'acRight',   N'Điều hòa Daikin 18000BTU',       'ACTIVE', N''),
-    ('DE-101', 'tv',        N'Smart TV TCL 65 inch 4K',        'ACTIVE', N''),
+    ('DE-101', 'projector', N'Máy chiếu Epson Laser Full HD', 'REPAIRING', N'Bóng đèn báo thay thế định kỳ'),
+    ('DE-101', 'acLeft',    N'Điều hòa Daikin 18000BTU',       'ACTIVE',    N''),
+    ('DE-101', 'acRight',   N'Điều hòa Daikin 18000BTU',       'ACTIVE',    N''),
+    ('DE-101', 'tv',        N'Smart TV TCL 65 inch 4K',        'ACTIVE',    N''),
 
-    ('EP-201', 'projector', N'Máy chiếu Panasonic PT-VZ580',  'ACTIVE', N''),
-    ('EP-201', 'acLeft',    N'Điều hòa Daikin 18000BTU',       'ACTIVE', N''),
-    ('EP-201', 'acRight',   N'Điều hòa Daikin 18000BTU',       'ACTIVE', N''),
-    ('EP-201', 'tv',        N'Smart TV Samsung 65 inch',       'ACTIVE', N''),
+    ('EP-201', 'projector', N'Máy chiếu Panasonic PT-VZ580',  'ACTIVE',    N''),
+    ('EP-201', 'acLeft',    N'Điều hòa Daikin 18000BTU',       'ACTIVE',    N''),
+    ('EP-201', 'acRight',   N'Điều hòa Daikin 18000BTU',       'ACTIVE',    N''),
+    ('EP-201', 'tv',        N'Smart TV Samsung 65 inch',       'FAULTY',    N'Cháy cổng HDMI 1 do sốc điện, cần sửa'),
 
-    ('GA-301', 'projector', N'Máy chiếu Laser Công suất lớn', 'ACTIVE', N''),
-    ('GA-301', 'acLeft',    N'Hệ thống Điều hòa trung tâm 01', 'ACTIVE', N''),
-    ('GA-301', 'acRight',   N'Hệ thống Điều hòa trung tâm 02', 'ACTIVE', N''),
-    ('GA-301', 'tv',        N'Màn hình LED Hội trường P2.5',   'ACTIVE', N'');
+    ('GA-301', 'projector', N'Máy chiếu Laser Công suất lớn', 'ACTIVE',    N''),
+    ('GA-301', 'acLeft',    N'Hệ thống Điều hòa trung tâm 01', 'ACTIVE',   N''),
+    ('GA-301', 'acRight',   N'Hệ thống Điều hòa trung tâm 02', 'ACTIVE',   N''),
+    ('GA-301', 'tv',        N'Màn hình LED Hội trường P2.5',   'ACTIVE',    N'');
 
     -- 4. NẠP ASSETS (Toàn bộ tài sản trang thiết bị chi tiết với đơn giá, serial, ngày bàn giao)
     INSERT INTO dbo.assets (code, name, category, serial_number, handover_date, price, room_id, status, note) VALUES
     -- Phòng BE-301
-    ('AST-BE301-PJ',  N'Máy chiếu Sony Laser 4K VPL-XW5000', N'Máy chiếu', 'SN-SNY-BE301-01', '2025-09-01', 25000000, 'BE-301', 'ACTIVE',      N'Đang hoạt động tốt, hình ảnh sắc nét'),
-    ('AST-BE301-AC1', N'Điều hòa Daikin Inverter 18000BTU (Trái)', N'Điều hòa', 'SN-DKN-BE301-01', '2025-08-15', 14500000, 'BE-301', 'ACTIVE',      N'Làm lạnh nhanh, đã bảo dưỡng định kỳ'),
-    ('AST-BE301-AC2', N'Điều hòa Daikin Inverter 18000BTU (Phải)', N'Điều hòa', 'SN-DKN-BE301-02', '2025-08-15', 14500000, 'BE-301', 'ACTIVE',      N'Hoạt động bình thường'),
-    ('AST-BE301-TV',  N'Smart TV Samsung 65 inch 4K Crystal', N'Smart TV', 'SN-SSG-BE301-01', '2025-10-10', 16200000, 'BE-301', 'ACTIVE',      N'Hiển thị tốt, kết nối HDMI ổn định'),
-    ('AST-BE301-AU',  N'Bộ Micro không dây & Amply Shure', N'Âm thanh', 'SN-SHR-BE301-01', '2025-11-05', 8500000, 'BE-301', 'ACTIVE',      N'Micro rõ tiếng, không rè'),
+    ('AST-BE301-PJ',  N'Máy chiếu Sony Laser 4K VPL-XW5000', N'Máy chiếu', 'SN-SNY-BE301-01', '2025-09-01', 25000000, 'BE-301', 'ACTIVE',    N'Đang hoạt động tốt, hình ảnh sắc nét'),
+    ('AST-BE301-AC1', N'Điều hòa Daikin Inverter 18000BTU (Trái)', N'Điều hòa', 'SN-DKN-BE301-01', '2025-08-15', 14500000, 'BE-301', 'ACTIVE', N'Làm lạnh nhanh, đã bảo dưỡng định kỳ'),
+    ('AST-BE301-AC2', N'Điều hòa Daikin Inverter 18000BTU (Phải)', N'Điều hòa', 'SN-DKN-BE301-02', '2025-08-15', 14500000, 'BE-301', 'ACTIVE', N'Hoạt động bình thường'),
+    ('AST-BE301-TV',  N'Smart TV Samsung 65 inch 4K Crystal', N'Smart TV', 'SN-SSG-BE301-01', '2025-10-10', 16200000, 'BE-301', 'ACTIVE',    N'Hiển thị tốt, kết nối HDMI ổn định'),
+    ('AST-BE301-AU',  N'Bộ Micro không dây & Amply Shure', N'Âm thanh', 'SN-SHR-BE301-01', '2025-11-05', 8500000, 'BE-301', 'ACTIVE',         N'Micro rõ tiếng, không rè'),
 
     -- Phòng BE-302
-    ('AST-BE302-PJ',  N'Máy chiếu Panasonic PT-VMZ50 Laser', N'Máy chiếu', 'SN-PAN-BE302-01', '2025-09-02', 22000000, 'BE-302', 'ACTIVE',      N'Hoạt động tốt'),
-    ('AST-BE302-AC1', N'Điều hòa Daikin 18000BTU (Trái)', N'Điều hòa', 'SN-DKN-BE302-01', '2025-08-16', 14500000, 'BE-302', 'MAINTENANCE', N'Đang vệ sinh màng lọc và kiểm tra ga'),
-    ('AST-BE302-AC2', N'Điều hòa Daikin 18000BTU (Phải)', N'Điều hòa', 'SN-DKN-BE302-02', '2025-08-16', 14500000, 'BE-302', 'ACTIVE',      N'Làm mát tốt'),
-    ('AST-BE302-TV',  N'Smart TV LG QNED 65 inch 4K', N'Smart TV', 'SN-LGE-BE302-01', '2025-10-11', 17800000, 'BE-302', 'ACTIVE',      N'Chất lượng hình ảnh xuất sắc'),
+    ('AST-BE302-PJ',  N'Máy chiếu Panasonic PT-VMZ50 Laser', N'Máy chiếu', 'SN-PAN-BE302-01', '2025-09-02', 22000000, 'BE-302', 'ACTIVE',     N'Hoạt động tốt'),
+    ('AST-BE302-AC1', N'Điều hòa Daikin 18000BTU (Trái)', N'Điều hòa', 'SN-DKN-BE302-01', '2025-08-16', 14500000, 'BE-302', 'REPAIRING',       N'Đang vệ sinh màng lọc và kiểm tra ga'),
+    ('AST-BE302-AC2', N'Điều hòa Daikin 18000BTU (Phải)', N'Điều hòa', 'SN-DKN-BE302-02', '2025-08-16', 14500000, 'BE-302', 'ACTIVE',          N'Làm mát tốt'),
+    ('AST-BE302-TV',  N'Smart TV LG QNED 65 inch 4K', N'Smart TV', 'SN-LGE-BE302-01', '2025-10-11', 17800000, 'BE-302', 'ACTIVE',              N'Chất lượng hình ảnh xuất sắc'),
 
     -- Phòng BE-303
     ('AST-BE303-PJ',  N'Máy chiếu Epson EB-2250U Siêu nét', N'Máy chiếu', 'SN-EPS-BE303-01', '2025-09-05', 24000000, 'BE-303', 'ACTIVE',      N'Độ sáng 5000 Ansi Lumens'),
-    ('AST-BE303-AC1', N'Điều hòa Panasonic 24000BTU Inverter', N'Điều hòa', 'SN-PAN-BE303-01', '2025-08-20', 19500000, 'BE-303', 'ACTIVE',      N'Làm lạnh cực nhanh'),
-    ('AST-BE303-AC2', N'Điều hòa Panasonic 24000BTU Inverter', N'Điều hòa', 'SN-PAN-BE303-02', '2025-08-20', 19500000, 'BE-303', 'ACTIVE',      N'Hoạt động bình thường'),
-    ('AST-BE303-TV',  N'Smart TV Sony Bravia 75 inch 4K', N'Smart TV', 'SN-SNY-BE303-01', '2025-10-15', 28000000, 'BE-303', 'ACTIVE',      N'Phục vụ hội thảo và thảo luận chuyên sâu'),
-    ('AST-BE303-AU',  N'Hệ thống Loa thanh Soundbar Bose', N'Âm thanh', 'SN-BOS-BE303-01', '2025-11-12', 12500000, 'BE-303', 'ACTIVE',      N'Âm thanh vòm trong trẻo'),
+    ('AST-BE303-AC1', N'Điều hòa Panasonic 24000BTU Inverter', N'Điều hòa', 'SN-PAN-BE303-01', '2025-08-20', 19500000, 'BE-303', 'ACTIVE',    N'Làm lạnh cực nhanh'),
+    ('AST-BE303-AC2', N'Điều hòa Panasonic 24000BTU Inverter', N'Điều hòa', 'SN-PAN-BE303-02', '2025-08-20', 19500000, 'BE-303', 'ACTIVE',    N'Hoạt động bình thường'),
+    ('AST-BE303-TV',  N'Smart TV Sony Bravia 75 inch 4K', N'Smart TV', 'SN-SNY-BE303-01', '2025-10-15', 28000000, 'BE-303', 'ACTIVE',         N'Phục vụ hội thảo và thảo luận chuyên sâu'),
+    ('AST-BE303-AU',  N'Hệ thống Loa thanh Soundbar Bose', N'Âm thanh', 'SN-BOS-BE303-01', '2025-11-12', 12500000, 'BE-303', 'ACTIVE',        N'Âm thanh vòm trong trẻo'),
 
     -- Phòng AL-101 (Phòng Lab CNTT)
     ('AST-AL101-PJ',  N'Máy chiếu ViewSonic Laser LS700HD', N'Máy chiếu', 'SN-VSN-AL101-01', '2025-09-10', 21500000, 'AL-101', 'ACTIVE',      N'Đang chiếu bài giảng mượt mà'),
-    ('AST-AL101-AC1', N'Điều hòa Daikin 18000BTU (Cửa sổ)', N'Điều hòa', 'SN-DKN-AL101-01', '2025-08-18', 14500000, 'AL-101', 'ACTIVE',      N'Hoạt động ổn định'),
-    ('AST-AL101-AC2', N'Điều hòa Daikin 18000BTU (Cửa chính)', N'Điều hòa', 'SN-DKN-AL101-02', '2025-08-18', 14500000, 'AL-101', 'ACTIVE',      N'Hoạt động ổn định'),
-    ('AST-AL101-TV',  N'Smart TV Samsung 75 inch UHD', N'Smart TV', 'SN-SSG-AL101-01', '2025-10-20', 23000000, 'AL-101', 'ACTIVE',      N'Màn hình to rõ cho toàn phòng Lab'),
+    ('AST-AL101-AC1', N'Điều hòa Daikin 18000BTU (Cửa sổ)', N'Điều hòa', 'SN-DKN-AL101-01', '2025-08-18', 14500000, 'AL-101', 'ACTIVE',       N'Hoạt động ổn định'),
+    ('AST-AL101-AC2', N'Điều hòa Daikin 18000BTU (Cửa chính)', N'Điều hòa', 'SN-DKN-AL101-02', '2025-08-18', 14500000, 'AL-101', 'ACTIVE',    N'Hoạt động ổn định'),
+    ('AST-AL101-TV',  N'Smart TV Samsung 75 inch UHD', N'Smart TV', 'SN-SSG-AL101-01', '2025-10-20', 23000000, 'AL-101', 'ACTIVE',            N'Màn hình to rõ cho toàn phòng Lab'),
     ('AST-AL101-SW',  N'Cisco Switch 48 Ports Gigabit Layer 3', N'Thiết bị Lab', 'SN-CSCO-AL101-01', '2025-07-15', 32000000, 'AL-101', 'ACTIVE', N'Trung tâm mạng phòng Lab CNTT'),
     ('AST-AL101-SRV', N'Máy chủ Server Dell PowerEdge R650', N'Thiết bị Lab', 'SN-DLL-AL101-01', '2025-07-20', 48000000, 'AL-101', 'ACTIVE',    N'Chạy máy ảo thực hành cho sinh viên'),
 
     -- Phòng AL-102 (Phòng Lab Đồ họa & AI)
-    ('AST-AL102-PJ',  N'Máy chiếu BenQ 4K HDR Chuyên đồ họa', N'Máy chiếu', 'SN-BNQ-AL102-01', '2025-09-12', 31000000, 'AL-102', 'ACTIVE',      N'Độ chuẩn màu 100% sRGB'),
-    ('AST-AL102-AC1', N'Điều hòa Daikin Inverter 24000BTU', N'Điều hòa', 'SN-DKN-AL102-01', '2025-08-22', 19500000, 'AL-102', 'ACTIVE',      N'Làm mát phòng đồ họa tải nhiệt cao'),
-    ('AST-AL102-AC2', N'Điều hòa Daikin Inverter 24000BTU', N'Điều hòa', 'SN-DKN-AL102-02', '2025-08-22', 19500000, 'AL-102', 'ACTIVE',      N'Làm mát ổn định'),
-    ('AST-AL102-TV',  N'Smart TV LG OLED 65 inch AI ThinQ', N'Smart TV', 'SN-LGE-AL102-01', '2025-10-25', 29000000, 'AL-102', 'ACTIVE',      N'Chuẩn màu HDR cao cấp'),
+    ('AST-AL102-PJ',  N'Máy chiếu BenQ 4K HDR Chuyên đồ họa', N'Máy chiếu', 'SN-BNQ-AL102-01', '2025-09-12', 31000000, 'AL-102', 'ACTIVE',     N'Độ chuẩn màu 100% sRGB'),
+    ('AST-AL102-AC1', N'Điều hòa Daikin Inverter 24000BTU', N'Điều hòa', 'SN-DKN-AL102-01', '2025-08-22', 19500000, 'AL-102', 'ACTIVE',       N'Làm mát phòng đồ họa tải nhiệt cao'),
+    ('AST-AL102-AC2', N'Điều hòa Daikin Inverter 24000BTU', N'Điều hòa', 'SN-DKN-AL102-02', '2025-08-22', 19500000, 'AL-102', 'ACTIVE',       N'Làm mát ổn định'),
+    ('AST-AL102-TV',  N'Smart TV LG OLED 65 inch AI ThinQ', N'Smart TV', 'SN-LGE-AL102-01', '2025-10-25', 29000000, 'AL-102', 'ACTIVE',        N'Chuẩn màu HDR cao cấp'),
     ('AST-AL102-WS1', N'Máy tính Workstation HP Z2 G9 i9-13900K RTX 4080', N'Thiết bị Lab', 'SN-HPZ-AL102-01', '2026-01-15', 45000000, 'AL-102', 'ACTIVE', N'Máy giảng viên giảng dạy AI'),
-    ('AST-AL102-WS2', N'Máy tính Apple iMac 24 inch M3 16GB', N'Thiết bị Lab', 'SN-APL-AL102-01', '2026-02-10', 38500000, 'AL-102', 'ACTIVE',    N'Thực hành lập trình macOS & iOS'),
+    ('AST-AL102-WS2', N'Máy tính Apple iMac 24 inch M3 16GB', N'Thiết bị Lab', 'SN-APL-AL102-01', '2026-02-10', 38500000, 'AL-102', 'ACTIVE',   N'Thực hành lập trình macOS & iOS'),
 
     -- Phòng AL-201
     ('AST-AL201-PJ',  N'Máy chiếu Sony VPL-PHZ60 Laser 6000 Lumens', N'Máy chiếu', 'SN-SNY-AL201-01', '2025-09-15', 27000000, 'AL-201', 'ACTIVE', N'Chiếu sáng rõ trong ban ngày'),
-    ('AST-AL201-AC1', N'Điều hòa Panasonic Inverter 18000BTU', N'Điều hòa', 'SN-PAN-AL201-01', '2025-08-25', 15200000, 'AL-201', 'ACTIVE',      N'Vận hành êm ái'),
-    ('AST-AL201-AC2', N'Điều hòa Panasonic Inverter 18000BTU', N'Điều hòa', 'SN-PAN-AL201-02', '2025-08-25', 15200000, 'AL-201', 'BROKEN',      N'Bị rò rỉ nước ngưng, đang chờ thay ống xả'),
+    ('AST-AL201-AC1', N'Điều hòa Panasonic Inverter 18000BTU (Trái)', N'Điều hòa', 'SN-PAN-AL201-01', '2025-08-25', 15200000, 'AL-201', 'ACTIVE', N'Vận hành êm ái'),
+    ('AST-AL201-AC2', N'Điều hòa Panasonic Inverter 18000BTU (Phải)', N'Điều hòa', 'SN-PAN-AL201-02', '2025-08-25', 15200000, 'AL-201', 'FAULTY', N'[Báo hỏng bởi Thầy Nguyễn Quốc Hùng]: Bị rò rỉ nước ngưng xuống bàn học, cần kiểm tra ống xả'),
     ('AST-AL201-TV',  N'Smart TV Samsung Crystal UHD 65 inch', N'Smart TV', 'SN-SSG-AL201-01', '2025-10-30', 16500000, 'AL-201', 'ACTIVE',      N'Hoạt động bình thường'),
 
     -- Phòng DE-101
-    ('AST-DE101-PJ',  N'Máy chiếu Epson Laser Full HD 4000lm', N'Máy chiếu', 'SN-EPS-DE101-01', '2025-09-18', 21000000, 'DE-101', 'MAINTENANCE', N'Bóng đèn báo thay thế định kỳ'),
-    ('AST-DE101-AC1', N'Điều hòa Daikin 18000BTU (Phía trước)', N'Điều hòa', 'SN-DKN-DE101-01', '2025-08-28', 14500000, 'DE-101', 'ACTIVE',     N'Hoạt động tốt'),
-    ('AST-DE101-AC2', N'Điều hòa Daikin 18000BTU (Phía sau)', N'Điều hòa', 'SN-DKN-DE101-02', '2025-08-28', 14500000, 'DE-101', 'ACTIVE',       N'Hoạt động tốt'),
-    ('AST-DE101-TV',  N'Smart TV TCL 65 inch 4K HDR', N'Smart TV', 'SN-TCL-DE101-01', '2025-11-01', 13500000, 'DE-101', 'ACTIVE',              N'Hình ảnh sắc nét'),
+    ('AST-DE101-PJ',  N'Máy chiếu Epson Laser Full HD 4000lm', N'Máy chiếu', 'SN-EPS-DE101-01', '2025-09-18', 21000000, 'DE-101', 'REPAIRING',  N'Bóng đèn báo thay thế định kỳ, Staff đang bảo trì'),
+    ('AST-DE101-AC1', N'Điều hòa Daikin 18000BTU (Phía trước)', N'Điều hòa', 'SN-DKN-DE101-01', '2025-08-28', 14500000, 'DE-101', 'ACTIVE',    N'Hoạt động tốt'),
+    ('AST-DE101-AC2', N'Điều hòa Daikin 18000BTU (Phía sau)', N'Điều hòa', 'SN-DKN-DE101-02', '2025-08-28', 14500000, 'DE-101', 'ACTIVE',      N'Hoạt động tốt'),
+    ('AST-DE101-TV',  N'Smart TV TCL 65 inch 4K HDR', N'Smart TV', 'SN-TCL-DE101-01', '2025-11-01', 13500000, 'DE-101', 'ACTIVE',             N'Hình ảnh sắc nét'),
 
     -- Phòng EP-201
-    ('AST-EP201-PJ',  N'Máy chiếu Panasonic PT-VZ580 WUXGA', N'Máy chiếu', 'SN-PAN-EP201-01', '2025-09-20', 23500000, 'EP-201', 'ACTIVE',       N'Độ phân giải 1920x1200'),
-    ('AST-EP201-AC1', N'Điều hòa Daikin 18000BTU', N'Điều hòa', 'SN-DKN-EP201-01', '2025-08-30', 14500000, 'EP-201', 'ACTIVE',                N'Vận hành ổn định'),
-    ('AST-EP201-AC2', N'Điều hòa Daikin 18000BTU', N'Điều hòa', 'SN-DKN-EP201-02', '2025-08-30', 14500000, 'EP-201', 'ACTIVE',                N'Vận hành ổn định'),
-    ('AST-EP201-TV',  N'Smart TV Samsung 65 inch', N'Smart TV', 'SN-SSG-EP201-01', '2025-11-05', 16000000, 'EP-201', 'BROKEN',                 N'Cháy cổng HDMI 1 do sốc điện, cần sửa'),
+    ('AST-EP201-PJ',  N'Máy chiếu Panasonic PT-VZ580 WUXGA', N'Máy chiếu', 'SN-PAN-EP201-01', '2025-09-20', 23500000, 'EP-201', 'ACTIVE',      N'Độ phân giải 1920x1200'),
+    ('AST-EP201-AC1', N'Điều hòa Daikin 18000BTU', N'Điều hòa', 'SN-DKN-EP201-01', '2025-08-30', 14500000, 'EP-201', 'ACTIVE',               N'Vận hành ổn định'),
+    ('AST-EP201-AC2', N'Điều hòa Daikin 18000BTU', N'Điều hòa', 'SN-DKN-EP201-02', '2025-08-30', 14500000, 'EP-201', 'ACTIVE',               N'Vận hành ổn định'),
+    ('AST-EP201-TV',  N'Smart TV Samsung 65 inch', N'Smart TV', 'SN-SSG-EP201-01', '2025-11-05', 16000000, 'EP-201', 'FAULTY',                N'[Báo hỏng bởi Thầy Nguyễn Quốc Hùng]: Cháy cổng HDMI 1 do sốc điện, không nhận tín hiệu'),
 
     -- Phòng GA-301 (Hội trường lớn)
     ('AST-GA301-PJ',  N'Máy chiếu Laser Công suất lớn 10000 Lumens', N'Máy chiếu', 'SN-LSR-GA301-01', '2025-09-25', 65000000, 'GA-301', 'ACTIVE', N'Phục vụ sự kiện toàn trường'),
@@ -234,6 +253,15 @@ BEGIN
     ('AST-GA301-AC2', N'Hệ thống Điều hòa trung tâm Daikin VRV 02', N'Điều hòa', 'SN-VRV-GA301-02', '2025-08-01', 55000000, 'GA-301', 'ACTIVE', N'Công suất cực lớn cho hội trường'),
     ('AST-GA301-TV',  N'Màn hình LED Hội trường P2.5 Indoor (150 inch)', N'Smart TV', 'SN-LED-GA301-01', '2025-10-01', 85000000, 'GA-301', 'ACTIVE', N'Màn hình LED trung tâm bục diễn'),
     ('AST-GA301-AU',  N'Dàn Âm thanh Hội trường Line Array Yamaha & Bàn Mixer', N'Âm thanh', 'SN-YMH-GA301-01', '2025-10-05', 42000000, 'GA-301', 'ACTIVE', N'Hệ thống loa và micro hội nghị chuyên nghiệp');
+
+    -- 5. NẠP DỮ LIỆU MẪU LỊCH SỬ THAY ĐỔI (CHANGE_HISTORY)
+    INSERT INTO dbo.change_history (action_type, target_type, target_code, target_name, room_id, old_value, new_value, description, performed_by, performer_name, performer_role, created_at) VALUES
+    ('CREATE_ASSET',  'ASSET', 'AST-AL102-WS2', N'Máy tính Apple iMac 24 inch M3 16GB', 'AL-102', N'Chưa có', N'Phòng AL-102 | Trạng thái: ACTIVE', N'Ghi nhận tài sản mới vào phòng Lab Đồ họa & AI (Đơn giá: 38,500,000 VNĐ)', 'admin', N'Quản trị viên Hệ thống', 'ADMIN', DATEADD(HOUR, -48, SYSDATETIME())),
+    ('UPDATE_ROOM',   'ROOM',  'DE-101',        N'Phòng học DE-101 (Tòa Delta)',         'DE-101', N'Ghế: 40/40 | Lý thuyết tiêu chuẩn', N'Ghế: 45/45 | Phòng Seminar & Thảo luận nhóm', N'Cập nhật sức chứa và mục đích sử dụng cho phòng DE-101', 'admin', N'Quản trị viên Hệ thống', 'ADMIN', DATEADD(HOUR, -36, SYSDATETIME())),
+    ('TRANSFER_ASSET','ASSET', 'AST-BE303-AU',  N'Hệ thống Loa thanh Soundbar Bose',    'BE-303', N'Phòng BE-301', N'Phòng BE-303', N'Chuyển dời thiết bị âm thanh từ phòng BE-301 sang phòng Seminar BE-303', 'it_beta', N'Trần Văn Tuấn (Cán bộ Quản lý)', 'STAFF', DATEADD(HOUR, -24, SYSDATETIME())),
+    ('REPORT_DAMAGE', 'ASSET', 'AST-EP201-TV',  N'Smart TV Samsung 65 inch',            'EP-201', N'Trạng thái: Hoạt động tốt (ACTIVE)', N'Trạng thái: Hỏng hóc (FAULTY)', N'Giảng viên báo hỏng thiết bị: Cháy cổng HDMI 1 do sốc điện, không nhận tín hiệu', 'hungnq', N'Thầy Nguyễn Quốc Hùng', 'LECTURER', DATEADD(HOUR, -12, SYSDATETIME())),
+    ('UPDATE_ASSET',  'ASSET', 'AST-BE302-AC1', N'Điều hòa Daikin 18000BTU (Trái)',     'BE-302', N'Trạng thái: FAULTY (Hỏng hóc)', N'Trạng thái: REPAIRING (Đang bảo trì)', N'Tiếp nhận xử lý sự cố: Đang vệ sinh màng lọc và kiểm tra ga điều hòa', 'it_beta', N'Trần Văn Tuấn (Cán bộ Quản lý)', 'STAFF', DATEADD(HOUR, -5, SYSDATETIME())),
+    ('REPORT_DAMAGE', 'ASSET', 'AST-AL201-AC2', N'Điều hòa Panasonic Inverter 18000BTU (Phải)', 'AL-201', N'Trạng thái: Hoạt động tốt (ACTIVE)', N'Trạng thái: Hỏng hóc (FAULTY)', N'Giảng viên báo hỏng thiết bị: Bị rò rỉ nước ngưng xuống bàn học, cần kiểm tra ống xả', 'hungnq', N'Thầy Nguyễn Quốc Hùng', 'LECTURER', DATEADD(HOUR, -1, SYSDATETIME()));
 
 END;
 GO
@@ -251,13 +279,7 @@ SELECT 'rooms' AS TableName, COUNT(*) AS TotalRows FROM dbo.rooms
 UNION ALL
 SELECT 'room_assets' AS TableName, COUNT(*) AS TotalRows FROM dbo.room_assets
 UNION ALL
-SELECT 'assets' AS TableName, COUNT(*) AS TotalRows FROM dbo.assets;
-
-SELECT 
-    COUNT(*) AS TotalAssets,
-    SUM(price) AS TotalEstimatedValue_VND,
-    SUM(CASE WHEN status = 'ACTIVE' THEN 1 ELSE 0 END) AS ActiveCount,
-    SUM(CASE WHEN status = 'MAINTENANCE' THEN 1 ELSE 0 END) AS MaintenanceCount,
-    SUM(CASE WHEN status = 'BROKEN' THEN 1 ELSE 0 END) AS BrokenCount
-FROM dbo.assets;
+SELECT 'assets' AS TableName, COUNT(*) AS TotalRows FROM dbo.assets
+UNION ALL
+SELECT 'change_history' AS TableName, COUNT(*) AS TotalRows FROM dbo.change_history;
 GO

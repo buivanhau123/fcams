@@ -121,13 +121,12 @@ public class Asset implements Serializable {
     }
 
     public String getStatusDisplayName() {
-        if ("FAULTY".equalsIgnoreCase(status)) {
+        if ("FAULTY".equalsIgnoreCase(status) || "BROKEN".equalsIgnoreCase(status)) {
             return "Hỏng hóc";
         }
-        if ("REPAIRING".equalsIgnoreCase(status)) {
+        if ("REPAIRING".equalsIgnoreCase(status) || "MAINTENANCE".equalsIgnoreCase(status)) {
             return "Đang bảo trì";
         }
-        return "Đang hoạt động tốt";
+        return "Hoạt động tốt";
     }
 }
-

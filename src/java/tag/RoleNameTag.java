@@ -6,7 +6,7 @@ import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import java.io.IOException;
 
 /**
- * Custom Tag hiển thị tên vai trò tiếng Việt của người dùng.
+ * Custom Tag hiển thị tên vai trò tiếng Việt của người dùng (ADMIN, STAFF, LECTURER).
  * Đáp ứng tiêu chí 1.4 (JSP CustomTag).
  */
 public class RoleNameTag extends SimpleTagSupport {
@@ -21,11 +21,10 @@ public class RoleNameTag extends SimpleTagSupport {
         JspWriter out = getJspContext().getOut();
         if ("ADMIN".equalsIgnoreCase(role)) {
             out.print("Quản trị viên (Admin)");
-        } else if ("IT_STAFF".equalsIgnoreCase(role) || "STAFF".equalsIgnoreCase(role)) {
+        } else if ("STAFF".equalsIgnoreCase(role)) {
             out.print("Cán bộ Quản lý (Staff)");
         } else {
-            out.print("Giảng viên");
+            out.print("Giảng viên (Lecturer)");
         }
     }
 }
-

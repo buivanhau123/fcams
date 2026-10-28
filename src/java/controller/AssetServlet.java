@@ -1,6 +1,7 @@
 package controller;
 
 import dal.AssetDAO;
+import dal.HistoryDAO;
 import dal.RoomDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -16,11 +17,11 @@ import model.Room;
 import model.User;
 
 /**
- * Controller Quản lý Tài sản (Asset Management - CRUD - Tiêu chí 3):
+ * Controller Quản lý Tài sản (Asset Management - CRUD - Tiêu chí 3) & Báo cáo đồ hỏng hóc:
  * - Danh sách & Tìm kiếm: Liệt kê toàn bộ tài sản kèm bộ lọc (Phòng học, Danh mục, Trạng thái) và tìm kiếm theo tên/mã tài sản.
- * - Thêm mới: Ghi nhận tài sản mới với đầy đủ thông số (Mã, Tên, Số serial, Ngày bàn giao, Đơn giá, Phòng bố trí).
- * - Cập nhật: Sửa thông tin tài sản, chuyển dời tài sản giữa các phòng học.
- * - Xóa: Xóa bản ghi tài sản (chỉ dành cho quyền Admin).
+ * - Báo cáo đồ hỏng hóc (Giảng viên / Staff / Admin): Báo cáo sự cố thiết bị trong phòng và tự động ghi vào Lịch sử thay đổi.
+ * - Thêm mới / Cập nhật / Chuyển phòng (Staff / Admin): Tự động lưu vết vào bảng Lịch sử thay đổi.
+ * - Xóa: Xóa bản ghi tài sản (chỉ dành cho quyền Admin) và lưu vết vào bảng Lịch sử thay đổi.
  */
 @WebServlet(name = "AssetServlet", urlPatterns = {"/assets"})
 public class AssetServlet extends HttpServlet {
@@ -38,16 +39,22 @@ public class AssetServlet extends HttpServlet {
 
         String editCode = request.getParameter("editCode");
         String transferCode = request.getParameter("transferCode");
+        String reportCode = request.getParameter("reportCode");
 
         List<Asset> assets = assetDAO.filterAssets(roomId, category, status, keyword);
         List<Room> rooms = roomDAO.getAllRooms();
         List<String> categories = assetDAO.getCategories();
 
-        if (editCode != null && !editCode.isBlank()) {
+        User currentUser = (User) request.getSession().getAttribute("currentUser");
+
+        if (editCode != null && !editCode.isBlank() && currentUser != null && currentUser.isStaffOrAdmin()) {
             request.setAttribute("editAsset", assetDAO.getAssetByCode(editCode));
         }
-        if (transferCode != null && !transferCode.isBlank()) {
+        if (transferCode != null && !transferCode.isBlank() && currentUser != null && currentUser.isStaffOrAdmin()) {
             request.setAttribute("transferAsset", assetDAO.getAssetByCode(transferCode));
+        }
+        if (reportCode != null && !reportCode.isBlank()) {
+            request.setAttribute("reportAsset", assetDAO.getAssetByCode(reportCode));
         }
 
         request.setAttribute("assets", assets);
@@ -67,7 +74,59 @@ public class AssetServlet extends HttpServlet {
             throws ServletException, IOException {
         String action = request.getParameter("action");
         AssetDAO assetDAO = new AssetDAO();
+        HistoryDAO historyDAO = new HistoryDAO();
         User currentUser = (User) request.getSession().getAttribute("currentUser");
+
+        if (currentUser == null) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+
+        // 0. Báo cáo đồ hỏng hóc (Dành cho Giảng viên LECTURER, STAFF và ADMIN)
+        if ("reportDamage".equalsIgnoreCase(action)) {
+            String assetCode = request.getParameter("assetCode");
+            String damageNote = request.getParameter("damageNote");
+            String returnRoomId = request.getParameter("returnRoomId");
+
+            String redirectBase = (returnRoomId != null && !returnRoomId.isBlank())
+                    ? (request.getContextPath() + "/room-detail?id=" + encode(returnRoomId.trim()) + "&")
+                    : (request.getContextPath() + "/assets?");
+
+            if (assetCode == null || assetCode.isBlank()) {
+                response.sendRedirect(redirectBase + "error=" + encode("Vui lòng chọn thiết bị / đồ vật cần báo hỏng!"));
+                return;
+            }
+            if (damageNote == null || damageNote.trim().length() < 3) {
+                response.sendRedirect(redirectBase + "error=" + encode("Vui lòng nhập mô tả chi tiết tình trạng hỏng hóc (ít nhất 3 ký tự)!"));
+                return;
+            }
+
+            Asset before = assetDAO.getAssetByCode(assetCode.trim());
+            if (before == null) {
+                response.sendRedirect(redirectBase + "error=" + encode("Không tìm thấy thiết bị có mã " + assetCode + "!"));
+                return;
+            }
+
+            boolean ok = assetDAO.reportAssetDamage(before.getCode(), damageNote.trim(), currentUser.getFullName());
+            if (ok) {
+                String oldVal = "Trạng thái: " + before.getStatusDisplayName() + " (" + before.getStatus() + ")";
+                String newVal = "Trạng thái: Hỏng hóc (FAULTY)";
+                String desc = "Báo cáo đồ hỏng hóc tại phòng " + before.getRoomId() + ": " + damageNote.trim();
+                historyDAO.logChange("REPORT_DAMAGE", "ASSET", before.getCode(), before.getName(),
+                        before.getRoomId(), oldVal, newVal, desc, currentUser);
+
+                response.sendRedirect(redirectBase + "msg=" + encode("Đã gửi báo cáo hỏng hóc cho thiết bị [" + before.getCode() + " - " + before.getName() + "] tới Cán bộ Quản lý (Staff)!"));
+            } else {
+                response.sendRedirect(redirectBase + "error=" + encode("Không thể gửi báo cáo hỏng hóc. Vui lòng thử lại!"));
+            }
+            return;
+        }
+
+        // Kiểm tra quyền Staff hoặc Admin cho các thao tác quản trị bên dưới
+        if (!currentUser.isStaffOrAdmin()) {
+            response.sendRedirect(request.getContextPath() + "/assets?error=" + encode("Quyền hạn bị từ chối: Giảng viên chỉ có quyền xem tình trạng đồ vật và gửi báo cáo hỏng hóc!"));
+            return;
+        }
 
         // 1. Thêm mới tài sản (Admin / Staff)
         if ("create".equalsIgnoreCase(action)) {
@@ -117,6 +176,12 @@ public class AssetServlet extends HttpServlet {
 
             boolean ok = assetDAO.addAsset(a);
             if (ok) {
+                String oldVal = "Chưa có";
+                String newVal = "Phòng " + a.getRoomId() + " | Trạng thái: " + a.getStatusDisplayName();
+                String desc = "Ghi nhận tài sản mới vào phòng " + a.getRoomId() + " (Danh mục: " + a.getCategory() + ", Đơn giá: " + a.getFormattedPrice() + ")";
+                historyDAO.logChange("CREATE_ASSET", "ASSET", a.getCode(), a.getName(),
+                        a.getRoomId(), oldVal, newVal, desc, currentUser);
+
                 response.sendRedirect(request.getContextPath() + "/assets?msg=" + encode("Ghi nhận tài sản mới " + a.getCode() + " thành công!"));
             } else {
                 response.sendRedirect(request.getContextPath() + "/assets?error=" + encode("Lỗi khi thêm tài sản vào cơ sở dữ liệu!"));
@@ -135,6 +200,8 @@ public class AssetServlet extends HttpServlet {
             String roomId = request.getParameter("roomId");
             String status = request.getParameter("status");
             String note = request.getParameter("note");
+
+            Asset before = assetDAO.getAssetByCode(code != null ? code.trim() : "");
 
             double price = 0;
             try {
@@ -159,6 +226,14 @@ public class AssetServlet extends HttpServlet {
 
             boolean ok = assetDAO.updateAsset(a);
             if (ok) {
+                String oldVal = (before != null)
+                        ? ("Phòng " + before.getRoomId() + " | " + before.getStatusDisplayName() + (before.getNote().isBlank() ? "" : " | " + before.getNote()))
+                        : "Không xác định";
+                String newVal = "Phòng " + a.getRoomId() + " | " + a.getStatusDisplayName() + (a.getNote().isBlank() ? "" : " | " + a.getNote());
+                String desc = "Cập nhật thông tin / tình trạng tài sản " + a.getCode() + " (" + a.getName() + ")";
+                historyDAO.logChange("UPDATE_ASSET", "ASSET", a.getCode(), a.getName(),
+                        a.getRoomId(), oldVal, newVal, desc, currentUser);
+
                 response.sendRedirect(request.getContextPath() + "/assets?msg=" + encode("Đã cập nhật thông tin tài sản " + a.getCode() + "!"));
             } else {
                 response.sendRedirect(request.getContextPath() + "/assets?error=" + encode("Không thể cập nhật tài sản!"));
@@ -170,8 +245,17 @@ public class AssetServlet extends HttpServlet {
         if ("transfer".equalsIgnoreCase(action)) {
             String assetCode = request.getParameter("assetCode");
             String targetRoom = request.getParameter("targetRoom");
+            Asset before = assetDAO.getAssetByCode(assetCode);
             boolean ok = assetDAO.transferAsset(assetCode, targetRoom);
             if (ok) {
+                String fromRoom = (before != null) ? before.getRoomId() : "N/A";
+                String assetName = (before != null) ? before.getName() : assetCode;
+                String oldVal = "Phòng " + fromRoom;
+                String newVal = "Phòng " + targetRoom;
+                String desc = "Chuyển dời tài sản từ phòng " + fromRoom + " sang phòng " + targetRoom;
+                historyDAO.logChange("TRANSFER_ASSET", "ASSET", assetCode, assetName,
+                        targetRoom, oldVal, newVal, desc, currentUser);
+
                 response.sendRedirect(request.getContextPath() + "/assets?msg=" + encode("Đã chuyển dời tài sản " + assetCode + " sang phòng " + targetRoom + " thành công!"));
             } else {
                 response.sendRedirect(request.getContextPath() + "/assets?error=" + encode("Không thể chuyển dời tài sản!"));
@@ -181,13 +265,22 @@ public class AssetServlet extends HttpServlet {
 
         // 4. Xóa bản ghi tài sản (CHỈ ADMIN MỚI ĐƯỢC PHÉP XÓA)
         if ("delete".equalsIgnoreCase(action)) {
-            if (currentUser == null || !currentUser.isAdmin()) {
+            if (!currentUser.isAdmin()) {
                 response.sendRedirect(request.getContextPath() + "/assets?error=" + encode("Quyền hạn bị từ chối: Chức năng XÓA tài sản là chức năng nguy hiểm, chỉ Quản trị viên (Admin) mới có quyền thực hiện!"));
                 return;
             }
             String code = request.getParameter("code");
+            Asset before = assetDAO.getAssetByCode(code);
             boolean ok = assetDAO.deleteAsset(code);
             if (ok) {
+                String room = (before != null) ? before.getRoomId() : "";
+                String name = (before != null) ? before.getName() : code;
+                String oldVal = (before != null) ? ("Phòng " + before.getRoomId() + " | " + before.getStatusDisplayName()) : "Tồn tại";
+                String newVal = "Đã xóa khỏi hệ thống";
+                String desc = "Xóa bản ghi tài sản " + code + " (" + name + ") khỏi phòng " + room;
+                historyDAO.logChange("DELETE_ASSET", "ASSET", code, name,
+                        room, oldVal, newVal, desc, currentUser);
+
                 response.sendRedirect(request.getContextPath() + "/assets?msg=" + encode("Đã xóa bản ghi tài sản " + code + " khỏi hệ thống!"));
             } else {
                 response.sendRedirect(request.getContextPath() + "/assets?error=" + encode("Không thể xóa tài sản " + code + "!"));
@@ -202,4 +295,3 @@ public class AssetServlet extends HttpServlet {
         return URLEncoder.encode(text, StandardCharsets.UTF_8);
     }
 }
-

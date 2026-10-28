@@ -17,9 +17,9 @@ import model.User;
 
 /**
  * Filter phân quyền và bảo mật hệ thống (Tiêu chí 1: Authentication & Authorization):
- * - Tự động chặn các truy cập trái phép vào các trang quản trị khi chưa đăng nhập.
- * - Hạn chế quyền thực hiện chức năng nguy hiểm (Xóa tài sản, Sửa / Xóa phòng học) đối với vai trò Staff (chỉ Admin mới có quyền).
- * - Lưu trữ thông tin người dùng vào HttpSession, đăng xuất an toàn xóa Session.
+ * - ADMIN: Toàn quyền hệ thống (Dashboard, Tài sản CRUD + Xóa, Phòng học CRUD + Xóa, Xem Lịch sử thay đổi).
+ * - STAFF: Quản lý Tài sản (Thêm, Sửa, Chuyển phòng, Xử lý báo hỏng), Xem Phòng học, Xem Lịch sử thay đổi. Bị hạn chế Xóa tài sản và Sửa/Xóa phòng.
+ * - LECTURER (Giảng viên): Xem tình trạng phòng học & các đồ vật trong phòng, Gửi báo cáo đồ hỏng hóc cho Staff. Không được Thêm/Sửa/Xóa/Chuyển tài sản và không được xem trang Lịch sử.
  */
 @WebFilter(filterName = "AuthFilter", urlPatterns = {"/*"})
 public class AuthFilter implements Filter {
@@ -73,11 +73,38 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // 4. Phân quyền và hạn chế chức năng nguy hiểm (Authorization & Security)
+        // 4. Phân quyền theo vai trò (Authorization & Security)
         String action = req.getParameter("action");
         String editId = req.getParameter("editId");
+        String editCode = req.getParameter("editCode");
+        String transferCode = req.getParameter("transferCode");
 
-        // Ngăn chặn chức năng NGUY HIỂM 1: XÓA tài sản hoặc XÓA phòng học (Chỉ Admin mới có quyền)
+        // 4.1. Chặn Giảng viên (LECTURER) truy cập trang Lịch sử (/history) - Chỉ ADMIN và STAFF được xem
+        if (path.startsWith("/history")) {
+            if (!currentUser.isStaffOrAdmin()) {
+                String errMsg = URLEncoder.encode("Quyền hạn bị từ chối: Trang Lịch sử thay đổi chỉ dành cho Quản trị viên (Admin) và Cán bộ Quản lý (Staff)!", StandardCharsets.UTF_8);
+                res.sendRedirect(contextPath + "/dashboard?error=" + errMsg);
+                return;
+            }
+        }
+
+        // 4.2. Chặn Giảng viên (LECTURER) thực hiện Thêm / Sửa / Chuyển / Xóa tài sản (chỉ được Xem và Báo hỏng)
+        if (path.startsWith("/assets")) {
+            if (currentUser.isLecturer()) {
+                if ((editCode != null && !editCode.isBlank()) || (transferCode != null && !transferCode.isBlank())) {
+                    String errMsg = URLEncoder.encode("Quyền hạn bị từ chối: Giảng viên chỉ được xem tình trạng thiết bị và gửi báo cáo hỏng hóc!", StandardCharsets.UTF_8);
+                    res.sendRedirect(contextPath + "/assets?error=" + errMsg);
+                    return;
+                }
+                if ("POST".equalsIgnoreCase(req.getMethod()) && !"reportDamage".equalsIgnoreCase(action)) {
+                    String errMsg = URLEncoder.encode("Quyền hạn bị từ chối: Giảng viên chỉ có quyền gửi Báo cáo đồ hỏng hóc!", StandardCharsets.UTF_8);
+                    res.sendRedirect(contextPath + "/assets?error=" + errMsg);
+                    return;
+                }
+            }
+        }
+
+        // 4.3. Ngăn chặn chức năng NGUY HIỂM 1: XÓA tài sản hoặc XÓA phòng học (Chỉ Admin mới có quyền)
         if ("delete".equalsIgnoreCase(action)) {
             if (!currentUser.isAdmin()) {
                 String referer = req.getHeader("Referer");
@@ -89,11 +116,16 @@ public class AuthFilter implements Filter {
             }
         }
 
-        // Ngăn chặn chức năng NGUY HIỂM 2: SỬA hoặc THAY ĐỔI thông số phòng học (Chỉ Admin mới có quyền)
+        // 4.4. Ngăn chặn chức năng NGUY HIỂM 2: SỬA hoặc THAY ĐỔI thông số phòng học (Chỉ Admin mới có quyền)
         if (path.startsWith("/rooms")) {
             if (("update".equalsIgnoreCase(action) || "create".equalsIgnoreCase(action) || (editId != null && !editId.isBlank()))
                     && !currentUser.isAdmin()) {
                 String errMsg = URLEncoder.encode("Quyền hạn bị từ chối: Thao tác Thêm / Sửa thông số phòng học là chức năng nguy hiểm, chỉ Quản trị viên (Admin) mới có quyền thực hiện!", StandardCharsets.UTF_8);
+                res.sendRedirect(contextPath + "/rooms?error=" + errMsg);
+                return;
+            }
+            if ("reset".equalsIgnoreCase(action) && !currentUser.isStaffOrAdmin()) {
+                String errMsg = URLEncoder.encode("Quyền hạn bị từ chối: Chỉ Quản trị viên hoặc Cán bộ Quản lý mới được đặt lại dữ liệu!", StandardCharsets.UTF_8);
                 res.sendRedirect(contextPath + "/rooms?error=" + errMsg);
                 return;
             }
